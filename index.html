@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Financia — Révision Finance de Marché</title>
+<meta name="description" content="Application de révision de la finance de marché (taux, dérivés, FX, gestion de portefeuille, risques, réglementaire) pour préparer un stage en Risk Management.">
+<meta name="theme-color" content="#0b1420">
+<link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./css/styles.css">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Financia">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#/dashboard">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">Financia</span>
+    </a>
+    <div class="topbar-actions">
+      <span id="streak-badge" class="badge" title="Jours consécutifs de révision">— j</span>
+      <a class="icon-btn" href="#/reglages" aria-label="Réglages">⚙</a>
+    </div>
+  </div>
+</header>
+
+<main id="view" class="view" tabindex="-1">
+  <div class="loading">Chargement…</div>
+</main>
+
+<nav class="tabbar" aria-label="Navigation principale">
+  <a href="#/dashboard" data-tab="dashboard"><span class="ti">▤</span><span>Accueil</span></a>
+  <a href="#/flashcards" data-tab="flashcards"><span class="ti">▭</span><span>Cartes</span></a>
+  <a href="#/quiz" data-tab="quiz"><span class="ti">✓</span><span>Quiz</span></a>
+  <a href="#/calculateurs" data-tab="calculateurs"><span class="ti">∑</span><span>Calc</span></a>
+  <a href="#/glossaire" data-tab="glossaire"><span class="ti">≡</span><span>Glossaire</span></a>
+  <a href="#/graphiques" data-tab="graphiques"><span class="ti">◠</span><span>Graphes</span></a>
+  <a href="#/entretien" data-tab="entretien"><span class="ti">🗣</span><span>Oral</span></a>
+</nav>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

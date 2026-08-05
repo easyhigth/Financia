@@ -1,0 +1,25 @@
+{
+  "name": "Financia — Révision Finance de Marché",
+  "short_name": "Financia",
+  "description": "Révision de la finance de marché : taux, dérivés, FX, gestion de portefeuille, risques et réglementaire. 100 % local et hors ligne.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1420",
+  "theme_color": "#0b1420",
+  "categories": ["education", "finance", "productivity"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Réviser aujourd'hui", "url": "./index.html#/flashcards/session" },
+    { "name": "Simulateur d'entretien", "url": "./index.html#/entretien" },
+    { "name": "Calculateurs", "url": "./index.html#/calculateurs" }
+  ]
+}
