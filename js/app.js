@@ -1,6 +1,7 @@
 // Point d'entrée : routeur par hash + enregistrement du service worker.
 import { currentStreak } from './store.js';
 import { toast } from './ui.js';
+import { applySettings, isSimple, toggleSimple } from './settings.js';
 
 import dashboard from './views/dashboard.js';
 import flashcards from './views/flashcards.js';
@@ -11,10 +12,11 @@ import graphiques from './views/graphiques.js';
 import entretien from './views/entretien.js';
 import reglages from './views/reglages.js';
 import marques from './views/marques.js';
+import comprendre from './views/comprendre.js';
 
 const ROUTES = {
   dashboard, flashcards, quiz, calculateurs, glossaire,
-  graphiques, entretien, reglages, marques,
+  graphiques, entretien, reglages, marques, comprendre,
 };
 
 const viewEl = document.getElementById('view');
@@ -69,17 +71,46 @@ async function updateStreakBadge() {
   el.title = s > 0 ? `${s} jour(s) consécutif(s) de révision` : 'Aucune révision aujourd’hui';
 }
 
-window.addEventListener('hashchange', render);
-window.addEventListener('DOMContentLoaded', () => {
-  if (!location.hash) location.hash = '#/dashboard';
-  render();
-});
+// ------------------------------------------------- Mode « Expliquer simplement »
+function initSimpleToggle() {
+  const btn = document.getElementById('simple-toggle');
+  if (!btn) return;
+  const sync = () => {
+    btn.setAttribute('aria-pressed', String(isSimple()));
+    btn.title = isSimple()
+      ? 'Explications simples affichées — toucher pour masquer'
+      : 'Mode « Expliquer simplement » : ajoute une explication sans jargon partout';
+  };
+  sync();
+  btn.addEventListener('click', () => {
+    toggleSimple();
+    sync();
+    toast(isSimple()
+      ? 'Explications simples activées'
+      : 'Explications simples masquées');
+    render(); // la vue courante se redessine avec ou sans les blocs « En clair »
+  });
+}
 
-// Le rendu peut démarrer avant DOMContentLoaded si le module est évalué tardivement.
-if (document.readyState !== 'loading') {
+applySettings();
+
+window.addEventListener('hashchange', render);
+
+// Démarrage. Un module ES est différé : il s'exécute en général avant DOMContentLoaded,
+// mais pas toujours selon le mode de chargement — d'où les deux points d'entrée.
+// Le verrou est indispensable : sans lui, les écouteurs seraient posés deux fois
+// et chaque clic sur le bouton d'explications simples s'annulerait lui-même.
+let booted = false;
+function boot() {
+  if (booted) return;
+  booted = true;
   if (!location.hash) location.hash = '#/dashboard';
+  initSimpleToggle();
   render();
 }
+
+window.addEventListener('DOMContentLoaded', boot);
+if (document.readyState !== 'loading') boot();
 
 // ---------------------------------------------------------------- Service worker
 // Cycle de mise à jour : le navigateur détecte un nouveau sw.js, la nouvelle version

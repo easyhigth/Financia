@@ -1,7 +1,7 @@
 // Vue Quiz : QCM par module, feedback immédiat, historique des scores.
 import { MODULES, MODULE_BY_ID } from '../data/index.js';
 import { moduleScores, quizHistory, saveQuizAttempt, toggleBookmark, setNote } from '../store.js';
-import { esc, nl2br, pageHead, shuffle, num, dateFr, toast } from '../ui.js';
+import { esc, nl2br, pageHead, shuffle, num, dateFr, toast, plainBlock, plainToggleButton, bindPlainButtons } from '../ui.js';
 
 const SESSION_SIZE = 10;
 
@@ -103,12 +103,15 @@ async function run(moduleId, route, { el }) {
       <div class="explain">
         <strong>${ok ? '✓ Correct' : '✗ Incorrect'}</strong> — ${nl2br(q.explain)}
       </div>
+      ${plainBlock(q.id)}
+      ${plainToggleButton(q.id)}
       <div class="tool-row">
         <button id="q-bm">☆ À revoir</button>
         <button id="q-note">＋ Note</button>
         <button class="btn-primary" id="q-next">${idx + 1 < questions.length ? 'Suivante →' : 'Résultat →'}</button>
       </div>`;
 
+    bindPlainButtons(body);
     body.querySelector('#q-next').addEventListener('click', () => { idx++; draw(); });
     body.querySelector('#q-bm').addEventListener('click', async () => {
       const on = await toggleBookmark(q.id, { title: q.q, type: 'Question de quiz', href: `#/quiz/${moduleId}` });

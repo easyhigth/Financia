@@ -22,7 +22,24 @@ capital) est volontairement exclu.
 | **Réglementaire** | Bâle III/IV, FRTB, MiFID II, EMIR, UCITS/AIFM, SFDR, PRIIPs, MAR, CSDR, DORA |
 
 **Contenu embarqué dès le premier lancement** : 188 flashcards · 144 questions de quiz ·
-124 fiches de glossaire · 58 questions d'entretien.
+124 fiches de glossaire · 58 questions d'entretien · 12 leçons de découverte ·
+312 explications en langage courant.
+
+---
+
+## Pour débuter sans aucune base
+
+Le vocabulaire de la finance de marché est un mur pour un non-initié. Deux dispositifs y répondent :
+
+- **Onglet « Bases »** — 12 leçons progressives qui expliquent la finance de marché avec des mots
+  de tous les jours, à lire dans l'ordre : à quoi sert un marché, le taux d'intérêt, l'obligation,
+  la courbe des taux, l'action, la diversification, les dérivés, les options, la mesure du risque,
+  le risque de crédit, le métier de Risk Manager, la réglementation. Chaque leçon se termine par
+  un « À retenir » et un mini-lexique des mots qu'on va entendre.
+- **Bouton 💡 « Expliquer simplement »** (en haut de l'écran) — une fois activé, **chaque** flashcard
+  et **chaque** fiche de glossaire affiche en plus un bloc « En clair » : la même notion racontée
+  avec une image du quotidien, sans jargon. Le réglage est mémorisé.
+  Sans l'activer, un bouton « 💡 Expliquer simplement » reste disponible au cas par cas.
 
 ---
 
@@ -136,8 +153,11 @@ js/
   srs.js                Algorithme de répétition espacée (SM-2 adapté)
   store.js              Logique métier : SRS, streak, scores, notes, marque-pages
   ui.js                 Utilitaires d'interface (échappement, formats, toasts)
+  settings.js           Réglages d'affichage (mode « Expliquer simplement »)
   data/
     index.js            Agrégation et index du contenu
+    decouverte.js       Les 12 leçons du parcours « Bases »
+    simple/             Explications en langage courant, par module
     taux.js             Module Taux & obligations
     derives.js          Module Actions & dérivés
     fx.js               Module Change / FX
@@ -145,7 +165,7 @@ js/
     risques.js          Module Risques
     reglementaire.js    Module Réglementaire
   views/
-    dashboard.js  flashcards.js  quiz.js  calculateurs.js
+    dashboard.js  comprendre.js  flashcards.js  quiz.js  calculateurs.js
     glossaire.js  graphiques.js  entretien.js  marques.js  reglages.js
 ```
 
@@ -172,6 +192,15 @@ Chaque module est un fichier autonome dans `js/data/`. Les identifiants doivent 
 
 // Question d'entretien — « seconds » = temps conseillé
 { id: 'taux-i11', q: 'Expliquez-moi X.', seconds: 150, answer: 'Trame de réponse attendue.' }
+```
+
+Toute nouvelle flashcard ou fiche de glossaire doit aussi recevoir son explication en langage
+courant dans `js/data/simple/<module>.js` — le contrôle de contenu échoue si elle manque, pour
+éviter qu'une partie de l'application reste muette quand le mode 💡 est activé :
+
+```js
+// js/data/simple/taux.js
+export default { 'taux-f36': "L'explication avec une image du quotidien, sans jargon." };
 ```
 
 Après modification, un simple push suffit : le workflow contrôle le contenu, publie le site et

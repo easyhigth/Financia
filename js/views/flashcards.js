@@ -2,7 +2,7 @@
 import { MODULES, MODULE_BY_ID } from '../data/index.js';
 import { cardStats, dueCards, gradeCard, srsMap, getNote, setNote, getBookmark, toggleBookmark, pushRecent } from '../store.js';
 import { GRADES, previewLabel, newState } from '../srs.js';
-import { esc, nl2br, pageHead, shuffle, toast, num } from '../ui.js';
+import { esc, nl2br, pageHead, shuffle, toast, num, plainBlock, plainToggleButton, bindPlainButtons } from '../ui.js';
 import { ALL_CARDS } from '../data/index.js';
 
 export default async function flashcards(route, ctx) {
@@ -94,6 +94,8 @@ async function session(route, { el, navigate }) {
           <div class="back">
             <div class="def">${nl2br(card.back)}</div>
             ${card.example ? `<div class="ex"><strong>Exemple / piège :</strong> ${nl2br(card.example)}</div>` : ''}
+            ${plainBlock(card.id)}
+            ${plainToggleButton(card.id)}
           </div>` : ''}
       </div>
 
@@ -115,6 +117,7 @@ async function session(route, { el, navigate }) {
       </small></div>
     `;
 
+    bindPlainButtons(body);
     body.querySelector('#fc-reveal')?.addEventListener('click', () => { revealed = true; draw(); });
     body.querySelectorAll('[data-grade]').forEach((b) => b.addEventListener('click', () => onGrade(card, +b.dataset.grade)));
     body.querySelector('#fc-bm').addEventListener('click', async () => {

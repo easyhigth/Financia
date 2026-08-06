@@ -73,7 +73,7 @@ code, .mono { font-family: var(--mono); font-size: .88em; }
 /* ---------- Tabbar ---------- */
 .tabbar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
-  display: grid; grid-template-columns: repeat(7, 1fr);
+  display: grid; grid-template-columns: repeat(8, 1fr);
   background: rgba(11, 20, 32, .96);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-soft);
@@ -81,9 +81,9 @@ code, .mono { font-family: var(--mono); font-size: .88em; }
 }
 .tabbar a {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  padding: 8px 2px 7px; color: var(--text-3); font-size: .62rem; letter-spacing: .01em;
+  padding: 8px 1px 7px; color: var(--text-3); font-size: .58rem; letter-spacing: 0;
 }
-.tabbar a .ti { font-size: 1.05rem; line-height: 1; }
+.tabbar a .ti { font-size: 1rem; line-height: 1; }
 .tabbar a.active { color: var(--accent-2); }
 
 /* ---------- Layout ---------- */
@@ -253,6 +253,30 @@ svg.chart .zero { stroke: #4a6884; stroke-dasharray: 3 3; }
   box-shadow: 0 8px 26px rgba(0, 0, 0, .45); opacity: 0; transition: opacity .2s;
 }
 .toast.show { opacity: 1; }
+/* ---------- Mode « Expliquer simplement » ---------- */
+.plain {
+  margin-top: 12px;
+  background: #10233a;
+  border: 1px solid #2b4d6e;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.plain-h {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--accent-2); margin-bottom: 5px; font-weight: 650;
+}
+.plain-h::before { content: '💡 '; }
+.plain-b { font-size: .93rem; line-height: 1.6; color: var(--text); }
+.plain-key { border-left-color: var(--good); }
+.plain-key .plain-h { color: #7fd0a5; }
+.plain-key .plain-h::before { content: '📌 '; }
+.plain-ask { margin-top: 10px; border-color: #2b4d6e; color: var(--accent-2); }
+#simple-toggle { transition: background .15s, border-color .15s; }
+#simple-toggle[aria-pressed="true"] {
+  background: var(--accent-dim); border-color: #38648c; color: #eaf3fb;
+}
+
 .update-bar {
   position: fixed; left: 12px; right: 12px;
   bottom: calc(72px + var(--safe-b)); z-index: 60;

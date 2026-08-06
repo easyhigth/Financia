@@ -1,4 +1,6 @@
 // Petites briques d'interface partagées par les vues.
+import { simpleFor } from './data/simple/index.js';
+import { isSimple } from './settings.js';
 
 /** Échappement HTML — tout contenu injecté passe par ici. */
 export function esc(s) {
@@ -79,6 +81,42 @@ export function pageHead(title, sub) {
 /** Délègue un clic sur tous les éléments correspondant au sélecteur. */
 export function on(root, selector, event, handler) {
   root.querySelectorAll(selector).forEach((el) => el.addEventListener(event, handler));
+}
+
+/**
+ * Bloc « En clair » : l'explication sans jargon d'un élément.
+ * Rendu uniquement si le mode simple est actif et qu'une explication existe.
+ * @param {string} id  identifiant de la carte, fiche ou question
+ * @param {{force?: boolean, titre?: string}} opts  force = afficher hors mode simple
+ */
+export function plainBlock(id, opts = {}) {
+  const txt = simpleFor(id);
+  if (!txt) return '';
+  if (!opts.force && !isSimple()) return '';
+  return `<div class="plain">
+    <div class="plain-h">${esc(opts.titre || 'En clair')}</div>
+    <div class="plain-b">${nl2br(txt)}</div>
+  </div>`;
+}
+
+/** Bouton dépliant « Expliquer simplement », affiché quand le mode simple est éteint. */
+export function plainToggleButton(id) {
+  return simpleFor(id) && !isSimple()
+    ? `<button class="btn-sm plain-ask" data-plain="${esc(id)}">💡 Expliquer simplement</button>`
+    : '';
+}
+
+/** Branche les boutons « Expliquer simplement » présents dans un conteneur. */
+export function bindPlainButtons(root) {
+  root.querySelectorAll('[data-plain]').forEach((b) => b.addEventListener('click', () => {
+    if (b.nextElementSibling && b.nextElementSibling.classList.contains('plain')) {
+      b.nextElementSibling.remove();
+      b.innerHTML = '💡 Expliquer simplement';
+      return;
+    }
+    b.insertAdjacentHTML('afterend', plainBlock(b.dataset.plain, { force: true }));
+    b.innerHTML = '💡 Masquer';
+  }));
 }
 
 export const fmtDuration = (sec) => {

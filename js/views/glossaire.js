@@ -1,6 +1,6 @@
 // Vue Glossaire : recherche instantanée sur termes, définitions, formules et pièges.
 import { ALL_GLOSSARY, MODULES } from '../data/index.js';
-import { esc, nl2br, pageHead, moduleChips, toast } from '../ui.js';
+import { esc, nl2br, pageHead, moduleChips, toast, plainBlock, plainToggleButton, bindPlainButtons } from '../ui.js';
 import { getNote, setNote, getBookmark, toggleBookmark, allBookmarks, allNotes, pushRecent } from '../store.js';
 
 const norm = (s) => String(s).toLowerCase()
@@ -76,14 +76,17 @@ export default async function glossaire(route, { el }) {
             <div class="dim" style="font-size:.92rem;margin-top:4px">${highlight(g.def, terms)}</div>
             ${g.formula ? `<div class="formula">${esc(g.formula)}</div>` : ''}
             ${g.trap ? `<div class="trap">⚠ ${highlight(g.trap, terms)}</div>` : ''}
+            ${plainBlock(g.id)}
             ${noteMap[g.id] ? `<div class="note-body">${nl2br(noteMap[g.id])}</div>` : ''}
             <div class="row" style="margin-top:8px;gap:6px">
               <button class="btn-sm" data-bm="${esc(g.id)}">${bmSet.has(g.id) ? '★ Prioritaire' : '☆ À revoir'}</button>
               <button class="btn-sm" data-note="${esc(g.id)}">${noteMap[g.id] ? '✎ Note' : '＋ Note'}</button>
+              ${plainToggleButton(g.id)}
             </div>
           </div>`).join('')}
       </div>`;
 
+    bindPlainButtons(results);
     results.querySelectorAll('[data-bm]').forEach((b) => b.addEventListener('click', async () => {
       const id = b.dataset.bm;
       const g = ALL_GLOSSARY.find((x) => x.id === id);

@@ -79,6 +79,7 @@ export default async function dashboard(route, { el }) {
     <div class="grid cols-2">
       <a class="card card-link" href="#/entretien"><h3>Simulateur d'entretien</h3><small>${STATS.interview} questions ouvertes, chrono</small></a>
       <a class="card card-link" href="#/calculateurs"><h3>Calculateurs</h3><small>Obligation, Black-Scholes, VaR…</small></a>
+      <a class="card card-link" href="#/comprendre"><h3>Comprendre les bases</h3><small>12 leçons sans jargon</small></a>
       <a class="card card-link" href="#/graphiques"><h3>Graphiques</h3><small>Courbe des taux, payoffs, frontière</small></a>
       <a class="card card-link" href="#/marques"><h3>Notes & priorités</h3><small>${bookmarks.length} marque-page(s)</small></a>
     </div>

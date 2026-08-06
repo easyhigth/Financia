@@ -5,7 +5,7 @@
 // GitHub Actions : chaque publication change donc le contenu de ce fichier, ce qui
 // déclenche automatiquement la détection de mise à jour par le navigateur.
 // SW_REVISION sert de filet si le site est déployé sans passer par le workflow.
-const SW_REVISION = 'r2';
+const SW_REVISION = 'r3';
 const BUILD_ID = '__BUILD_ID__';
 const CACHE_VERSION = `financia-${SW_REVISION}-${BUILD_ID}`;
 
@@ -19,7 +19,16 @@ const ASSETS = [
   './js/srs.js',
   './js/store.js',
   './js/ui.js',
+  './js/settings.js',
   './js/data/index.js',
+  './js/data/decouverte.js',
+  './js/data/simple/index.js',
+  './js/data/simple/taux.js',
+  './js/data/simple/derives.js',
+  './js/data/simple/fx.js',
+  './js/data/simple/portefeuille.js',
+  './js/data/simple/risques.js',
+  './js/data/simple/reglementaire.js',
   './js/data/taux.js',
   './js/data/derives.js',
   './js/data/fx.js',
@@ -27,6 +36,7 @@ const ASSETS = [
   './js/data/risques.js',
   './js/data/reglementaire.js',
   './js/views/dashboard.js',
+  './js/views/comprendre.js',
   './js/views/flashcards.js',
   './js/views/quiz.js',
   './js/views/calculateurs.js',
