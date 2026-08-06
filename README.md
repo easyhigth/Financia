@@ -55,11 +55,25 @@ capital) est volontairement exclu.
 
 Le projet est entièrement statique : ni build, ni dépendance, ni outillage à maintenir.
 
-1. Poussez le dépôt sur GitHub.
-2. Dans le dépôt : **Settings → Pages**.
-3. *Source* : **Deploy from a branch**.
-4. *Branch* : la branche voulue (par exemple `main`), dossier **`/ (root)`**. Enregistrez.
-5. Après une minute, le site est disponible sur `https://<utilisateur>.github.io/<depot>/`.
+### Réglage initial (une seule fois)
+
+1. Dans le dépôt : **Settings → Pages**.
+2. *Source* : **GitHub Actions**. C'est tout — rien d'autre à configurer.
+
+Ensuite, **chaque push publie automatiquement le site** via `.github/workflows/deploy.yml`
+(branches `main` et `claude/**`). Le workflow :
+
+1. contrôle l'intégrité du contenu (`scripts/check-content.mjs`) et échoue si un identifiant est
+   dupliqué ou si un index de bonne réponse est hors bornes ;
+2. injecte le SHA du commit dans `sw.js` à la place du marqueur `__BUILD_ID__`, ce qui garantit
+   qu'une nouvelle version est détectée par les appareils déjà installés ;
+3. publie uniquement les fichiers de l'application (ni `.git`, ni workflow, ni scripts).
+
+L'URL du site s'affiche à la fin du job, dans l'onglet **Actions**, et sous **Settings → Pages**.
+
+> Alternative sans workflow : *Source : Deploy from a branch*, branche voulue, dossier `/ (root)`.
+> Dans ce cas l'injection du SHA n'a pas lieu et il faut incrémenter `SW_REVISION` dans `sw.js`
+> à chaque modification, sans quoi les appareils déjà installés conservent l'ancienne version.
 
 Tous les chemins sont relatifs (`./js/…`, `./icons/…`), l'application fonctionne donc dans un
 sous-répertoire sans configuration supplémentaire. Le fichier `.nojekyll` désactive le traitement Jekyll.
@@ -87,9 +101,21 @@ python3 -m http.server 8000
 
 Sur Android, Chrome propose directement « Installer l'application ».
 
-**Après une mise à jour du contenu** : rouvrez l'application en étant connecté ; le service worker
-récupère la nouvelle version (un message le signale). Le numéro `CACHE_VERSION` dans `sw.js` doit
-être incrémenté à chaque modification pour forcer le rafraîchissement.
+### Recevoir les mises à jour
+
+Rien à faire de particulier. À l'ouverture de l'application, et à chaque retour au premier plan,
+le service worker vérifie discrètement s'il existe une nouvelle version (si le réseau est disponible).
+Le cas échéant, elle est téléchargée en arrière-plan et une barre **« Nouvelle version disponible —
+Recharger »** apparaît en bas de l'écran. Un tap applique la mise à jour et recharge l'application.
+
+Points importants :
+
+- tant que vous ne tapez pas **Recharger**, l'ancienne version continue de tourner : aucune session
+  de révision n'est interrompue en cours de route ;
+- vous pouvez fermer la barre (✕), elle réapparaîtra à la prochaine ouverture ;
+- sans réseau, rien ne change : l'application fonctionne normalement sur la version installée ;
+- **votre progression n'est jamais affectée** — la mise à jour ne touche que le cache des fichiers,
+  pas la base IndexedDB qui contient répétition espacée, scores, notes et marque-pages.
 
 ---
 
@@ -98,8 +124,10 @@ récupère la nouvelle version (un message le signale). Le numéro `CACHE_VERSIO
 ```
 index.html              Shell de l'application (barre de navigation, conteneur de vue)
 manifest.json           Manifeste PWA (nom, icônes, mode standalone, raccourcis)
-sw.js                   Service worker : précache complet, cache-first
+sw.js                   Service worker : précache complet, cache-first, mise à jour contrôlée
 .nojekyll               Désactive Jekyll sur GitHub Pages
+.github/workflows/      Déploiement automatique sur GitHub Pages à chaque push
+scripts/check-content.mjs  Contrôle d'intégrité du contenu (exécuté au déploiement)
 css/styles.css          Thème sombre, palette bleu marine
 icons/                  Icônes 192/512/maskable/apple-touch + source SVG
 js/
@@ -146,8 +174,13 @@ Chaque module est un fichier autonome dans `js/data/`. Les identifiants doivent 
 { id: 'taux-i11', q: 'Expliquez-moi X.', seconds: 150, answer: 'Trame de réponse attendue.' }
 ```
 
-Après modification, incrémentez `CACHE_VERSION` dans `sw.js` pour que les appareils déjà installés
-récupèrent la nouvelle version.
+Après modification, un simple push suffit : le workflow contrôle le contenu, publie le site et
+injecte un nouvel identifiant de build dans `sw.js`, ce qui déclenche la proposition de mise à jour
+sur les appareils déjà installés. Pour vérifier le contenu en local avant de pousser :
+
+```bash
+node scripts/check-content.mjs
+```
 
 ---
 

@@ -1,6 +1,13 @@
 // Service worker — précache complet de l'application pour un fonctionnement 100 % hors ligne.
-// Incrémenter CACHE_VERSION à chaque modification du contenu ou du code.
-const CACHE_VERSION = 'financia-v1';
+//
+// Nom du cache = révision manuelle + identifiant de build.
+// Le marqueur ci-dessous est remplacé par le SHA du commit lors du déploiement
+// GitHub Actions : chaque publication change donc le contenu de ce fichier, ce qui
+// déclenche automatiquement la détection de mise à jour par le navigateur.
+// SW_REVISION sert de filet si le site est déployé sans passer par le workflow.
+const SW_REVISION = 'r2';
+const BUILD_ID = '__BUILD_ID__';
+const CACHE_VERSION = `financia-${SW_REVISION}-${BUILD_ID}`;
 
 const ASSETS = [
   './',
@@ -40,8 +47,18 @@ self.addEventListener('install', (e) => {
     caches.open(CACHE_VERSION)
       // addAll échouerait entièrement si une seule ressource manquait : on tolère les absences.
       .then((c) => Promise.all(ASSETS.map((u) => c.add(u).catch((err) => console.warn('précache ignoré', u, err)))))
-      .then(() => self.skipWaiting())
+      .then(() => {
+        // Première installation : on prend la main tout de suite (aucune page à interrompre).
+        // Mise à jour : on reste en attente, c'est l'utilisateur qui déclenche la bascule
+        // via le bouton « Recharger » (message SKIP_WAITING).
+        if (!self.registration.active) return self.skipWaiting();
+      })
   );
+});
+
+// Bascule immédiate demandée par la page (bouton « Recharger maintenant »).
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {

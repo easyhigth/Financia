@@ -82,18 +82,58 @@ if (document.readyState !== 'loading') {
 }
 
 // ---------------------------------------------------------------- Service worker
+// Cycle de mise à jour : le navigateur détecte un nouveau sw.js, la nouvelle version
+// s'installe en arrière-plan puis attend. On propose alors la bascule en un tap ;
+// tant que l'utilisateur ne l'accepte pas, l'application continue de tourner
+// normalement, y compris hors ligne, sur la version en place.
+function showUpdateBar(waiting) {
+  if (document.getElementById('update-bar')) return;
+  const bar = document.createElement('div');
+  bar.id = 'update-bar';
+  bar.className = 'update-bar';
+  bar.innerHTML = `
+    <span>Nouvelle version disponible</span>
+    <button id="update-now" class="btn-sm btn-primary">Recharger</button>
+    <button id="update-later" class="btn-sm btn-ghost" aria-label="Plus tard">✕</button>`;
+  document.body.appendChild(bar);
+  requestAnimationFrame(() => bar.classList.add('show'));
+
+  bar.querySelector('#update-later').addEventListener('click', () => bar.remove());
+  bar.querySelector('#update-now').addEventListener('click', () => {
+    bar.querySelector('#update-now').textContent = 'Mise à jour…';
+    waiting.postMessage({ type: 'SKIP_WAITING' });
+  });
+}
+
 if ('serviceWorker' in navigator) {
+  let reloading = false;
+  // Le nouveau service worker a pris la main : on recharge une seule fois.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
+      // Une version peut déjà être en attente au chargement de la page.
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBar(reg.waiting);
+
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;
         sw.addEventListener('statechange', () => {
-          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            toast('Mise à jour disponible — rouvrez l’application');
-          }
+          // controller absent = toute première installation, rien à proposer.
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBar(sw);
         });
       });
+
+      // Recherche d'une mise à jour au lancement, puis à chaque retour au premier plan
+      // (le cas typique sur iPhone : l'application reste ouverte en arrière-plan des jours).
+      const check = () => { if (navigator.onLine) reg.update().catch(() => {}); };
+      check();
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+      window.addEventListener('online', check);
     }).catch((e) => console.warn('SW non enregistré :', e));
   });
 }

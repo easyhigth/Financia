@@ -1,0 +1,56 @@
+name: Déploiement GitHub Pages
+
+# Publie l'application à chaque push : aucun redéploiement manuel n'est nécessaire.
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un seul déploiement à la fois ; les pushes rapprochés ne s'annulent pas mutuellement
+# une fois la publication lancée.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Le navigateur ne détecte une mise à jour que si sw.js change octet par octet.
+      # On y injecte le SHA du commit : chaque publication devient donc automatiquement
+      # une nouvelle version, sans avoir à penser à incrémenter un numéro à la main.
+      - name: Injecter l'identifiant de build dans le service worker
+        run: |
+          sed -i "s/__BUILD_ID__/${GITHUB_SHA::12}/" sw.js
+          grep -n "BUILD_ID" sw.js
+
+      - name: Contrôle du contenu pédagogique
+        run: node scripts/check-content.mjs
+
+      # On ne publie que ce qui sert à l'application (ni .git, ni workflow, ni scripts).
+      - name: Préparer le site
+        run: |
+          mkdir -p _site
+          cp -r index.html manifest.json sw.js .nojekyll README.md css js icons _site/
+          ls -R _site | head -40
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
