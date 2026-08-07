@@ -12,6 +12,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: write # nécessaire pour supprimer l'archive d'un essai précédent
 
 # Un seul déploiement à la fois ; les pushes rapprochés ne s'annulent pas mutuellement
 # une fois la publication lancée.
@@ -47,6 +48,20 @@ jobs:
           ls -R _site | head -40
 
       - uses: actions/configure-pages@v5
+
+      # Relancer uniquement le job échoué d'un run produit une seconde archive
+      # « github-pages » ; l'étape de publication en trouve alors deux et refuse de
+      # publier. On supprime donc celles d'un essai précédent avant d'en produire une.
+      - name: Nettoyer les archives d'un essai précédent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ids=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" \
+                  --jq '.artifacts[] | select(.name=="github-pages") | .id' || true)
+          for id in $ids; do
+            echo "suppression de l'archive $id"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/$id" || true
+          done
 
       - uses: actions/upload-pages-artifact@v3
         with:
