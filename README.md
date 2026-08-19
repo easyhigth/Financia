@@ -37,11 +37,12 @@ et les schémas redessinés ; chaque carte, fiche et outil porte la référence 
 
 Le vocabulaire de la finance de marché est un mur pour un non-initié. Deux dispositifs y répondent :
 
-- **Onglet « Bases »** — 12 leçons progressives qui expliquent la finance de marché avec des mots
+- **Onglet « Bases »** — 16 leçons progressives qui expliquent la finance de marché avec des mots
   de tous les jours, à lire dans l'ordre : à quoi sert un marché, le taux d'intérêt, l'obligation,
   la courbe des taux, l'action, la diversification, les dérivés, les options, la mesure du risque,
-  le risque de crédit, le métier de Risk Manager, la réglementation. Chaque leçon se termine par
-  un « À retenir » et un mini-lexique des mots qu'on va entendre.
+  le risque de crédit, le métier de Risk Manager, la réglementation, puis l'arbitrage, l'arbre
+  binomial expliqué avec une pièce de monnaie, la probabilité risque-neutre et les grecques.
+  Chaque leçon se termine par un « À retenir » et un mini-lexique des mots qu'on va entendre.
 - **Bouton 💡 « Expliquer simplement »** (en haut de l'écran) — une fois activé, **chaque** flashcard
   et **chaque** fiche de glossaire affiche en plus un bloc « En clair » : la même notion racontée
   avec une image du quotidien, sans jargon. Le réglage est mémorisé.

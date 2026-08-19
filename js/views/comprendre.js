@@ -27,7 +27,7 @@ async function index({ el }) {
 
     <div class="card">
       <h3>Par où commencer ?</h3>
-      <p class="muted" style="font-size:.9rem">Ces douze leçons expliquent la finance de marché avec des mots
+      <p class="muted" style="font-size:.9rem">Ces leçons expliquent la finance de marché avec des mots
       de tous les jours. Chacune ne s'appuie que sur les précédentes. Une fois ces bases posées, les flashcards
       et le glossaire deviennent nettement plus faciles à digérer.</p>
       <div class="bar-mini" style="margin:10px 0 8px"><i style="width:${Math.round((faits / total) * 100)}%"></i></div>
