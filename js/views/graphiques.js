@@ -1,6 +1,7 @@
 // Vue Graphiques : tracés SVG générés à la volée, sans librairie externe (contrainte offline).
 import { esc, pageHead, num, fieldNum } from '../ui.js';
 import { bs, binomial, legPayoff, legCost } from '../lib/bs.js';
+import { simulate, histVarES, paramVarES, ewma, volGlissante, merton } from '../lib/risk.js';
 
 // ------------------------------------------------------------ Moteur de tracé
 const W = 640, H = 366, PAD = { l: 54, r: 18, t: 30, b: 36 };
@@ -114,6 +115,83 @@ function tree(t, { type, american }) {
       <span><i style="background:#c8d6e5"></i>sous-jacent</span>
       <span><i style="background:#5b9bd5"></i>option</span>
       ${american ? '<span><i style="background:#4fae7d"></i>exercice anticipé optimal</span>' : ''}
+    </div>`;
+}
+
+
+/**
+ * Histogramme d'une distribution de pertes, avec repères VaR et Expected Shortfall.
+ *
+ * Les distributions à queues épaisses contiennent quelques valeurs si extrêmes
+ * qu'affichées telles quelles elles écrasent tout le reste. On borne donc la
+ * fenêtre visible et on compte à part les scénarios qui la dépassent — leur
+ * nombre est annoncé, jamais dissimulé.
+ */
+function hist({ valeurs, bins = 44, seuil, moyenneQueue, xFmt = (v) => num(v, 0) }) {
+  const tri = valeurs.slice().sort((a, b) => a - b);
+  const q = (p) => tri[Math.min(tri.length - 1, Math.max(0, Math.round((tri.length - 1) * p)))];
+  const min = q(0.005);
+  const max = Math.max(q(0.995), moyenneQueue * 1.15, seuil * 1.3);
+  const horsCadreDroite = valeurs.filter((v) => v > max).length;
+  const horsCadreGauche = valeurs.filter((v) => v < min).length;
+
+  const largeur = (max - min) / bins || 1;
+  const comptes = new Array(bins).fill(0);
+  valeurs.forEach((v) => {
+    const i = Math.min(bins - 1, Math.max(0, Math.floor((v - min) / largeur)));
+    comptes[i]++;
+  });
+  const hMax = Math.max(...comptes);
+  const W2 = 640, H2 = 330, padL = 18, padR = 18, padT = 46, padB = 48;
+  const X = (v) => padL + ((Math.min(Math.max(v, min), max) - min) / (max - min || 1)) * (W2 - padL - padR);
+  const Y = (c) => H2 - padB - (c / hMax) * (H2 - padT - padB);
+
+  const barres = comptes.map((c, i) => {
+    const x0 = min + i * largeur;
+    const enQueue = x0 + largeur / 2 >= seuil;
+    return `<rect x="${X(x0).toFixed(1)}" y="${Y(c).toFixed(1)}"
+      width="${Math.max(1.5, (W2 - padL - padR) / bins - 1).toFixed(1)}" height="${(H2 - padB - Y(c)).toFixed(1)}"
+      fill="${enQueue ? '#cc6a63' : '#2f6390'}"/>`;
+  }).join('');
+
+  // Repères : trait vertical + étiquette posée sur un fond, pour rester lisible
+  const repere = (v, couleur, label, y) => {
+    const x = X(v);
+    const aDroite = x < W2 * 0.62;
+    const lw = label.length * 6.2 + 10;
+    return `
+      <line x1="${x.toFixed(1)}" y1="${(padT - 14).toFixed(1)}" x2="${x.toFixed(1)}" y2="${H2 - padB}"
+            stroke="${couleur}" stroke-width="1.8" stroke-dasharray="4 3"/>
+      <rect x="${(aDroite ? x + 4 : x - lw - 4).toFixed(1)}" y="${y - 11}" width="${lw.toFixed(1)}" height="16" rx="4"
+            fill="#0d1a29" stroke="${couleur}" stroke-width="1"/>
+      <text x="${(aDroite ? x + 9 : x - lw + 1).toFixed(1)}" y="${y + 1}" fill="${couleur}" font-size="11">${esc(label)}</text>`;
+  };
+
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+    const v = min + (max - min) * f;
+    return `<text x="${X(v).toFixed(1)}" y="${H2 - padB + 17}" text-anchor="middle">${esc(xFmt(v))}</text>`;
+  }).join('');
+
+  return `
+    <div class="chart-wrap">
+      <svg class="chart" viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Distribution des pertes simulées">
+        <text x="8" y="16" fill="#8ba3ba" font-size="11">nombre de scénarios · les pertes vont vers la droite</text>
+        <line class="axis" x1="${padL}" y1="${H2 - padB}" x2="${W2 - padR}" y2="${H2 - padB}"/>
+        <rect x="${X(seuil).toFixed(1)}" y="${padT - 14}" width="${(W2 - padR - X(seuil)).toFixed(1)}"
+              height="${(H2 - padB - padT + 14).toFixed(1)}" fill="#cc6a63" opacity="0.13"/>
+        ${barres}
+        ${repere(seuil, '#d2a14a', `VaR ${xFmt(seuil)}`, padT - 2)}
+        ${repere(moyenneQueue, '#cc6a63', `ES ${xFmt(moyenneQueue)}`, padT + 18)}
+        ${horsCadreDroite ? `<text x="${W2 - padR}" y="${H2 - padB - 6}" text-anchor="end" fill="#cc6a63" font-size="10">+${horsCadreDroite} scénario(s) au-delà du cadre →</text>` : ''}
+        ${ticks}
+        <text x="${W2 - padR}" y="${H2 - 6}" text-anchor="end">perte</text>
+        <text x="${padL}" y="${H2 - 6}">gain</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:#2f6390"></i>scénarios courants</span>
+      <span><i style="background:#cc6a63"></i>queue au-delà de la VaR</span>
+      ${horsCadreGauche + horsCadreDroite ? `<span class="muted">${horsCadreGauche + horsCadreDroite} valeur(s) extrême(s) hors cadre</span>` : ''}
     </div>`;
 }
 
@@ -382,6 +460,171 @@ Ce n'est pas un hasard : Θ + ½σ²S²Γ = rΠ. Gagner sur les mouvements se pa
         notes: `${nom} d'un ${call ? 'call' : 'put'} de strike ${num(K, 2)} — valeur à la monnaie à 3 mois : ${num(atm, grec === 2 ? 5 : 4)}.
 
 ${COMMENT[grec] || COMMENT[1]}`,
+      };
+    },
+  },
+
+
+  distribution: {
+    title: 'Distribution des pertes, VaR et ES',
+    sub: "Ce que la VaR mesure — et ce qu'elle ignore complètement",
+    ref: 'Hull ch. 22',
+    fields: [
+      { name: 'V', label: 'Valeur du portefeuille (€)', value: 10000000 },
+      { name: 'vol', label: 'Volatilité quotidienne (%)', value: 1.2 },
+      { name: 'conf', label: 'Niveau de confiance (%)', value: 99 },
+      { name: 'df', label: 'Épaisseur des queues (3 = extrême, 30 = normale)', value: 4 },
+      { name: 'n', label: 'Scénarios simulés', value: 10000 },
+      { name: 'seed', label: 'Graine', value: 42 },
+    ],
+    presets: [
+      { label: 'Queues normales', v: { df: 30 } },
+      { label: 'Queues épaisses', v: { df: 4 } },
+      { label: 'Queues extrêmes', v: { df: 3 } },
+      { label: 'Seuil 95 %', v: { conf: 95 } },
+    ],
+    render(v) {
+      const alpha = Math.min(Math.max(v.conf / 100, 0.5), 0.999);
+      const sigma = v.vol / 100;
+      const n = Math.max(200, Math.min(Math.round(v.n), 20000));
+      const serie = simulate({ n, vol: sigma, df: Math.max(3, v.df), seed: Math.round(v.seed) });
+      const h = histVarES(serie, alpha, v.V);
+      const p = paramVarES(sigma, alpha, v.V);
+      const ecart = (h.varAbs - p.varAbs) / p.varAbs;
+      const pire = Math.max(...h.pertes);
+      return {
+        svg: hist({ valeurs: h.pertes, seuil: h.varAbs, moyenneQueue: h.es,
+                    xFmt: (x) => `${num(x / 1000, 0)} k` }),
+        notes: `VaR ${num(v.conf, 1)} % : ${num(h.varAbs, 0)} € — la barre orange.
+Expected Shortfall : ${num(h.es, 0)} € — la moyenne de toute la zone rouge, soit ${num(h.es / h.varAbs, 2)} fois la VaR.
+Pire scénario simulé : ${num(pire, 0)} €, soit ${num(pire / h.varAbs, 1)} fois la VaR.
+
+Ce que montre le dessin : la VaR est un simple trait sur l'axe. Elle dit où commence la zone rouge,
+et absolument rien sur ce qui s'y passe. Deux portefeuilles peuvent avoir la même VaR avec des queues
+totalement différentes — l'un perdant un peu au-delà du seuil, l'autre beaucoup.
+
+VaR gaussienne pour comparaison : ${num(p.varAbs, 0)} € (${ecart >= 0 ? '+' : ''}${num(ecart * 100, 1)} % d'écart).
+Touchez « Queues normales » puis « Queues extrêmes » : la VaR bouge peu, la zone rouge s'étale énormément.
+C'est exactement pourquoi Bâle a remplacé la VaR par l'Expected Shortfall dans la revue du portefeuille
+de négociation.`,
+      };
+    },
+  },
+
+  ewma: {
+    title: 'Volatilité : EWMA contre fenêtre glissante',
+    sub: 'Deux façons de mesurer la nervosité, et leur vitesse de réaction',
+    ref: 'Hull ch. 23',
+    fields: [
+      { name: 'volCalme', label: 'Volatilité en régime calme (%)', value: 0.6 },
+      { name: 'volChoc', label: 'Volatilité après le choc (%)', value: 2.5 },
+      { name: 'avant', label: 'Jours avant le choc', value: 120 },
+      { name: 'apres', label: 'Jours après le choc', value: 100 },
+      { name: 'lambda', label: 'λ de l’EWMA (RiskMetrics : 0,94)', value: 0.94 },
+      { name: 'fenetre', label: 'Fenêtre glissante (jours)', value: 60 },
+      { name: 'seed', label: 'Graine', value: 12 },
+    ],
+    presets: [
+      { label: 'λ = 0,94', v: { lambda: 0.94 } },
+      { label: 'λ = 0,80 (réactif)', v: { lambda: 0.80 } },
+      { label: 'λ = 0,99 (inerte)', v: { lambda: 0.99 } },
+      { label: 'Fenêtre 250 j', v: { fenetre: 250 } },
+    ],
+    render(v) {
+      const nA = Math.max(30, Math.round(v.avant)), nB = Math.max(20, Math.round(v.apres));
+      const seed = Math.round(v.seed);
+      const serie = [
+        ...simulate({ n: nA, vol: v.volCalme / 100, df: 100, seed }),
+        ...simulate({ n: nB, vol: v.volChoc / 100, df: 100, seed: seed + 1 }),
+      ];
+      const lam = Math.min(Math.max(v.lambda, 0.5), 0.999);
+      const fen = Math.max(5, Math.round(v.fenetre));
+      const e = ewma(serie, lam);
+      const g = volGlissante(serie, fen);
+      const jours = serie.map((_, i) => i + 1);
+      const serieE = jours.map((j, i) => [j, e[i] * 100]);
+      const serieG = jours.map((j, i) => [j, g[i] === null ? null : g[i] * 100])
+        .filter((pt) => pt[1] !== null);
+      const reelle = jours.map((j, i) => [j, (i < nA ? v.volCalme : v.volChoc)]);
+
+      // temps de réaction : jours nécessaires pour couvrir la moitié du saut
+      const cible = (v.volCalme + v.volChoc) / 2;
+      const demiE = e.findIndex((x, i) => i >= nA && x * 100 >= cible);
+      const demiG = g.findIndex((x, i) => i >= nA && x !== null && x * 100 >= cible);
+
+      return {
+        svg: plot({
+          series: [
+            { name: `EWMA (λ = ${num(lam, 2)})`, points: serieE },
+            { name: `Fenêtre glissante ${fen} j`, points: serieG },
+            { name: 'Volatilité réelle', points: reelle, dashed: true, color: '#7089a3' },
+          ],
+          xLabel: 'jours', yLabel: 'volatilité quotidienne (%)',
+          xFmt: (x) => num(x, 0), yFmt: (y) => num(y, 2),
+        }),
+        notes: `Le choc de volatilité intervient au jour ${nA} : elle passe de ${num(v.volCalme, 2)} % à ${num(v.volChoc, 2)} %.
+Temps pour rattraper la moitié du saut — EWMA : ${demiE >= 0 ? `${demiE - nA + 1} jour(s)` : 'non atteint'} · fenêtre glissante : ${demiG >= 0 ? `${demiG - nA + 1} jour(s)` : 'non atteint'}.
+
+L'EWMA donne plus de poids aux jours récents : elle réagit vite. La fenêtre à poids égaux traîne,
+puisqu'un jour de crise pèse autant qu'un jour calme d'il y a deux mois.
+
+Le revers, rarement mentionné et pourtant décisif : quand le calme revient, l'EWMA redescend
+lentement elle aussi. Une mesure de risque qui monte vite et redescend lentement rend les limites
+PROCYCLIQUES — elles se resserrent au pire moment, quand la liquidité manque déjà.
+Essayez λ = 0,80 puis λ = 0,99 pour sentir l'arbitrage entre réactivité et stabilité.`,
+      };
+    },
+  },
+
+  merton: {
+    title: 'Modèle de Merton',
+    sub: "Les capitaux propres vus comme une option d'achat sur l'entreprise",
+    ref: 'Hull ch. 24',
+    fields: [
+      { name: 'D', label: 'Dette à rembourser', value: 80 },
+      { name: 'sigmaV', label: "Volatilité de l'actif (%)", value: 25 },
+      { name: 'r', label: 'Taux sans risque (%)', value: 3 },
+      { name: 'T', label: 'Échéance de la dette (années)', value: 1 },
+      { name: 'Vref', label: "Valeur d'actif de référence", value: 100 },
+    ],
+    presets: [
+      { label: 'Peu endettée', v: { D: 40 } },
+      { label: 'Normale', v: { D: 80 } },
+      { label: 'Très endettée', v: { D: 110 } },
+      { label: 'Actif volatil', v: { sigmaV: 45 } },
+    ],
+    render(v) {
+      const D = Math.max(v.D, 0.01), T = Math.max(v.T, 0.01);
+      const r = v.r / 100, sig = Math.max(v.sigmaV / 100, 1e-4);
+      const xs = range(Math.max(D * 0.25, 1), D * 2.2, 120);
+      const capitaux = xs.map((V) => [V, merton({ V, D, T, r, sigmaV: sig }).capitaux]);
+      const dette = xs.map((V) => [V, merton({ V, D, T, r, sigmaV: sig }).dette]);
+      const sansRisque = xs.map((V) => [V, Math.min(V, D * Math.exp(-r * T))]);
+      const m = merton({ V: v.Vref, D, T, r, sigmaV: sig });
+      return {
+        svg: plot({
+          series: [
+            { name: 'Capitaux propres (le call)', points: capitaux },
+            { name: 'Valeur de la dette', points: dette },
+            { name: 'Dette si elle était sans risque', points: sansRisque, dashed: true, color: '#7089a3' },
+          ],
+          xLabel: "valeur de l'actif de l'entreprise", yLabel: 'valeur',
+          xFmt: (x) => num(x, 0), yFmt: (y) => num(y, 0),
+        }),
+        notes: `Dette de ${num(D, 1)} à rembourser dans ${num(T, 2)} an(s), volatilité de l'actif ${num(v.sigmaV, 1)} %.
+Pour un actif valant ${num(v.Vref, 1)} : capitaux propres ${num(m.capitaux, 2)} · dette ${num(m.dette, 2)} · total ${num(m.capitaux + m.dette, 2)}.
+Probabilité de défaut ${num(m.pd * 100, 2)} % · distance au défaut ${num(m.distanceDefaut, 2)} écarts-types · spread ${num(m.spread * 10000, 0)} bp.
+
+L'idée de Merton : les actionnaires détiennent une option d'achat sur l'entreprise. Si l'actif
+dépasse la dette, ils remboursent et gardent le reste ; sinon ils abandonnent tout aux créanciers.
+Leur perte est plafonnée à leur mise — exactement le profil d'un call, d'où la courbe qui s'écrase
+à zéro à gauche et devient linéaire à droite.
+
+L'écart entre la dette réelle et la ligne grise, c'est le coût du risque de crédit.
+Il se creuse quand l'entreprise s'endette ou quand son actif devient volatil — testez les préréglages.
+Cela explique aussi une chose importante : les actionnaires ont intérêt à ce que l'entreprise prenne
+des risques, puisqu'une option vaut d'autant plus cher que la volatilité est élevée. C'est le conflit
+d'intérêts entre actionnaires et créanciers, et l'un des fondements de la réglementation prudentielle.`,
       };
     },
   },

@@ -22,9 +22,9 @@ capital) est volontairement exclu.
 | **Réglementaire** | Bâle III/IV, FRTB, MiFID II, EMIR, UCITS/AIFM, SFDR, PRIIPs, MAR, CSDR, DORA |
 | **Dérivés — approfondissement** | Arbitrage et réplication, arbres binomiaux, évaluation risque-neutre, grecques, stratégies optionnelles |
 
-**Contenu embarqué dès le premier lancement** : 215 flashcards · 162 questions de quiz ·
-142 fiches de glossaire · 64 questions d'entretien · 16 leçons de découverte ·
-357 explications en langage courant.
+**Contenu embarqué dès le premier lancement** : 233 flashcards · 174 questions de quiz ·
+152 fiches de glossaire · 68 questions d'entretien · 17 leçons de découverte ·
+385 explications en langage courant.
 
 Le module d'approfondissement suit la progression de J. C. Hull, *Options, Futures and Other
 Derivatives* (11ᵉ éd.), utilisé comme ouvrage de référence. Les explications sont rédigées en propre
@@ -58,14 +58,19 @@ Le vocabulaire de la finance de marché est un mur pour un non-initié. Deux dis
 - **Calculateurs** — pricing obligataire (prix, duration, convexité, DV01), Black-Scholes et grecques,
   **arbre binomial** (européen et américain, avec prime d'exercice anticipé et convergence vers
   Black-Scholes), **grecques agrégées d'un portefeuille** et couverture associée,
-  VaR paramétrique et Expected Shortfall, P&L avec effet de levier, cross de change et taux à terme.
+  **VaR historique et Expected Shortfall** comparés à l'hypothèse gaussienne, **back-testing**
+  (test de Kupiec et feux tricolores de Bâle), **risque de crédit** (probabilité de défaut implicite
+  d'un spread et modèle structurel de Merton),
+  VaR paramétrique, P&L avec effet de levier, cross de change et taux à terme.
   Chacun affiche **la formule utilisée et le détail des étapes**, pas seulement le résultat.
 - **Glossaire** — recherche instantanée (as-you-type, insensible aux accents), fiches denses :
   définition, formule, piège à connaître.
 - **Graphiques interactifs** — courbe des taux (normale / plate / inversée / bossue, avec forwards
   implicites), **arbre binomial cliquable** avec repérage de l'exercice anticipé, **12 stratégies
   optionnelles** (spreads, straddle, butterfly, condor, collar, box…) avec points morts et bornes de
-  gain, **profils des quatre grecques** selon le spot et la maturité, payoff d'options, relation
+  gain, **profils des quatre grecques** selon le spot et la maturité, **distribution des pertes avec
+  repères VaR et ES**, **EWMA contre fenêtre glissante** de volatilité, **modèle de Merton**,
+  payoff d'options, relation
   prix-taux avec tangente de duration, frontière efficiente avec GMV, portefeuille tangent et CML.
   SVG généré à la volée, sans librairie externe.
 - **Simulateur d'entretien** — questions ouvertes chronométrées, sans correction automatique,
@@ -167,6 +172,7 @@ js/
   ui.js                 Utilitaires d'interface (échappement, formats, toasts)
   settings.js           Réglages d'affichage (mode « Expliquer simplement »)
   lib/bs.js             Briques de calcul partagées : loi normale, Black-Scholes, grecques, arbre binomial
+  lib/risk.js           Simulation reproductible, VaR/ES historiques, Kupiec, Bâle, EWMA, GARCH, Merton
   data/
     index.js            Agrégation et index du contenu
     decouverte.js       Les 12 leçons du parcours « Bases »

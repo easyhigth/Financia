@@ -310,4 +310,26 @@ export default [
       ['Book', "Le portefeuille de positions d'une équipe de trading."],
     ],
   },
+
+  {
+    id: 'dec-17',
+    title: 'Pourquoi les modèles se trompent',
+    sub: "La leçon la plus importante du métier — et la plus demandée en entretien",
+    minutes: 6,
+    sections: [
+      { h: "Un modèle est une maquette", p: "Une maquette d'avion en soufflerie n'est pas un avion. Elle est utile parce qu'elle simplifie, et elle est dangereuse pour exactement la même raison. Un modèle financier fait pareil : il suppose que les prix bougent gentiment, que tout se revend facilement, que le passé ressemble à l'avenir. Ces hypothèses sont fausses. La question n'est pas de savoir SI le modèle se trompe, mais où et de combien." },
+      { h: "Erreur 1 — les événements extrêmes sont plus fréquents qu'annoncé", p: "La plupart des modèles utilisent la courbe en cloche, qui décrit très bien les journées ordinaires. Mais elle prédit qu'une chute de 20 % en un jour n'arrive qu'une fois tous les milliards d'années. Or le 19 octobre 1987, c'est arrivé. Les marchés réels ont des queues épaisses : les catastrophes y sont bien plus fréquentes que dans les équations." },
+      { h: "Erreur 2 — les liens changent au pire moment", p: "On calcule des corrélations sur les trois dernières années pour savoir ce qui protège quoi. En crise, tout se met à baisser ensemble : le facteur commun devient la peur, et elle touche tout. Ta diversification s'évapore précisément le jour où tu comptais dessus. Aucune formule calibrée en période calme ne le voit venir." },
+      { h: "Erreur 3 — on suppose pouvoir vendre", p: "Tous les calculs de risque supposent qu'on peut solder ses positions au prix affiché. En pleine panique, l'acheteur disparaît. Le prix à l'écran devient théorique. C'est ce qui transforme une mauvaise journée en catastrophe : non pas la baisse elle-même, mais l'impossibilité d'en sortir." },
+      { h: "Erreur 4 — le modèle change le monde qu'il mesure", p: "Quand beaucoup d'acteurs utilisent le même modèle, il leur dicte les mêmes gestes au même moment. Tous vendent ensemble, ce qui amplifie le mouvement que le modèle voulait mesurer. On l'a vu en 1987 avec l'assurance de portefeuille, en 2020 avec les appels de marge, en 2022 avec les fonds de retraite britanniques." },
+      { h: "Ce qu'on fait malgré tout", p: "On ne renonce pas aux modèles : sans eux, on n'a rien. On les encadre. Validation par une équipe indépendante de celle qui les a construits. Vérification permanente que leurs prédictions se réalisent. Scénarios catastrophes qui ne dépendent d'aucune probabilité. Réserves financières pour l'incertitude qu'on sait ne pas savoir mesurer. Et une culture où dire « je ne comprends pas ce chiffre » est valorisé plutôt que mal vu." },
+    ],
+    retenir: "Un modèle simplifie, donc il se trompe : queues épaisses, corrélations instables, liquidité supposée, et effet d'entraînement quand tout le monde l'utilise. On ne les abandonne pas, on les encadre — validation indépendante, back-testing, stress tests et réserves.",
+    mots: [
+      ['Risque de modèle', "Le risque de perdre de l'argent à cause d'un modèle faux ou mal utilisé."],
+      ['Queues épaisses', "Les événements extrêmes sont plus fréquents que la courbe en cloche ne le prévoit."],
+      ['Validation indépendante', "Une équipe distincte vérifie le modèle de ceux qui l'ont construit."],
+      ['Procyclicité', "Quand la mesure du risque déclenche les ventes qui aggravent le risque."],
+    ],
+  },
 ];

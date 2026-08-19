@@ -1,6 +1,7 @@
 // Vue Calculateurs : chaque outil affiche la formule employée et le détail des étapes.
 import { esc, pageHead, num, fieldNum, toast } from '../ui.js';
 import { phi, N, normInv, bs, binomial } from '../lib/bs.js';
+import { simulate, histVarES, paramVarES, kupiec, baleZone, merton, pdImplicite } from '../lib/risk.js';
 
 // ---------------------------------------------------------------- Calculateurs
 const CALCS = {
@@ -354,6 +355,228 @@ Limites à garder en tête :
 • √h suppose des rendements i.i.d. sans autocorrélation ni illiquidité ;
 • la VaR ne dit rien de l'ampleur des pertes au-delà du seuil : d'où l'ES (FRTB retient ES 97,5 %) ;
 • sur un portefeuille optionnel, cette approche linéaire n'est pas valide (utiliser delta-gamma ou du repricing complet).`,
+      };
+    },
+  },
+
+
+  varhist: {
+    title: 'VaR historique & Expected Shortfall',
+    sub: "Ce que la loi normale ne voit pas : l'effet des queues épaisses",
+    ref: 'Hull ch. 22',
+    formula: `VaR historique = quantile des pertes observées
+ES = moyenne des pertes AU-DELÀ de la VaR
+VaR gaussienne = z_α × σ × V          ES gaussien = φ(z_α)/(1−α) × σ × V`,
+    fields: [
+      { name: 'V', label: 'Valeur du portefeuille (€)', value: 10000000 },
+      { name: 'vol', label: 'Volatilité quotidienne (%)', value: 1.2 },
+      { name: 'conf', label: 'Niveau de confiance (%)', value: 99 },
+      { name: 'n', label: 'Nombre de scénarios simulés', value: 10000 },
+      { name: 'df', label: 'Épaisseur des queues (3 = extrême, 30 = normale)', value: 4 },
+      { name: 'seed', label: 'Graine (même valeur = même série)', value: 42 },
+    ],
+    compute(v) {
+      const alpha = Math.min(Math.max(v.conf / 100, 0.5), 0.9995);
+      const sigma = v.vol / 100;
+      const n = Math.max(50, Math.min(Math.round(v.n), 50000));
+      const df = Math.max(3, v.df);
+      const serie = simulate({ n, vol: sigma, df, seed: Math.round(v.seed) });
+      const h = histVarES(serie, alpha, v.V);
+      const p = paramVarES(sigma, alpha, v.V);
+      const ecart = (h.varAbs - p.varAbs) / p.varAbs;
+      const pires = h.pertes.slice().sort((a, b) => b - a).slice(0, 5);
+      const kurt = (() => {
+        const m = serie.reduce((a, b) => a + b, 0) / n;
+        const sd = Math.sqrt(serie.reduce((a, r) => a + (r - m) ** 2, 0) / n);
+        return serie.reduce((a, r) => a + ((r - m) / sd) ** 4, 0) / n;
+      })();
+      return {
+        main: `${num(h.varAbs, 0)} €`,
+        mainLabel: `VaR historique ${num(v.conf, 1)} % à 1 jour`,
+        kv: [
+          ['VaR historique', `${num(h.varAbs, 0)} €`],
+          ['VaR gaussienne', `${num(p.varAbs, 0)} €`],
+          ['Écart', `${ecart >= 0 ? '+' : ''}${num(ecart * 100, 1)} %`],
+          ['Expected Shortfall historique', `${num(h.es, 0)} €`],
+          ['Expected Shortfall gaussien', `${num(p.es, 0)} €`],
+          ['Rapport ES / VaR (historique)', num(h.es / h.varAbs, 3)],
+          ['Scénarios dans la queue', `${h.nQueue} sur ${n}`],
+          ['Kurtosis de l’échantillon', `${num(kurt, 2)} (3 = loi normale)`],
+          ['Pire perte simulée', `${num(pires[0], 0)} €`],
+        ],
+        steps: `1) Génération de ${n} scénarios de rendement quotidien
+   volatilité ${num(v.vol, 3)} %, loi de Student à ${num(df, 0)} degrés de liberté
+   (plus ce nombre est petit, plus les évènements extrêmes sont fréquents)
+   Kurtosis obtenue : ${num(kurt, 2)} — une loi normale donnerait 3.
+
+2) Conversion en pertes : perte = −rendement × ${num(v.V, 0)} €
+
+3) VaR historique = quantile à ${num(v.conf, 2)} % des pertes triées
+   → ${num(h.varAbs, 0)} €   (${h.nQueue} scénarios la dépassent)
+
+4) Expected Shortfall = moyenne de ces ${h.nQueue} pertes
+   → ${num(h.es, 0)} €, soit ${num(h.es / h.varAbs, 2)} fois la VaR
+   Les cinq pires : ${pires.map((x) => num(x, 0)).join(' · ')} €
+
+5) Comparaison avec l'hypothèse gaussienne
+   VaR = z × σ × V = ${num(p.z, 4)} × ${num(sigma, 5)} × ${num(v.V, 0)} = ${num(p.varAbs, 0)} €
+   ES  = φ(z)/(1−α) × σ × V = ${num(p.es, 0)} €
+
+6) Fiabilité de l'estimation
+   La VaR à ${num(v.conf, 1)} % ne repose que sur les ${h.nQueue} pires scénarios sur ${n}.
+   C'est la faiblesse structurelle de la VaR historique : dans la réalité on utilise 250 à 500 jours,
+   donc le quantile à 99 % s'appuie sur 2 à 5 observations seulement — autant dire presque rien.
+   Réduisez le nombre de scénarios à 500 pour voir le résultat devenir instable d'une graine à l'autre.
+
+Lecture : la loi normale ${ecart > 0.02 ? `SOUS-ESTIME la VaR de ${num(ecart * 100, 1)} %` : ecart < -0.02 ? `surestime la VaR de ${num(-ecart * 100, 1)} %` : 'donne ici un résultat proche'}.
+C'est le reproche central fait à la VaR paramétrique : les rendements réels ont des queues
+plus épaisses qu'une gaussienne, et l'écart se creuse précisément dans les scénarios qui comptent.
+Faites varier l'épaisseur des queues de 100 (normale) à 3 (extrême) pour voir l'effet.
+L'Expected Shortfall, lui, regarde à l'intérieur de la queue — d'où son adoption par le régulateur.`,
+      };
+    },
+  },
+
+  backtest: {
+    title: 'Back-testing de la VaR',
+    sub: 'Test de Kupiec et dispositif des feux tricolores de Bâle',
+    ref: 'Hull ch. 22',
+    formula: `Exceptions attendues = n × (1 − α)
+LR = −2·ln[ (1−p)^(n−x)·p^x / ((1−x/n)^(n−x)·(x/n)^x ) ]
+Rejet du modèle à 95 % si LR > 3,841
+Bâle (250 jours, 99 %) : vert 0-4 · orange 5-9 · rouge ≥ 10`,
+    fields: [
+      { name: 'n', label: "Nombre de jours observés", value: 250 },
+      { name: 'conf', label: 'Niveau de confiance annoncé (%)', value: 99 },
+      { name: 'x', label: "Exceptions constatées", value: 5 },
+    ],
+    compute(v) {
+      const n = Math.max(1, Math.round(v.n));
+      const x = Math.max(0, Math.round(v.x));
+      const pNiveau = 1 - Math.min(Math.max(v.conf / 100, 0.5), 0.9999);
+      const k = kupiec(n, x, pNiveau);
+      const z = baleZone(x);
+      const pertinent = n === 250 && Math.abs(v.conf - 99) < 0.01;
+      return {
+        main: `${x} exception(s)`,
+        mainLabel: `pour ${num(k.attendu, 1)} attendue(s) sur ${n} jours`,
+        kv: [
+          ['Exceptions attendues', num(k.attendu, 2)],
+          ['Exceptions constatées', String(x)],
+          ['Taux constaté', `${num(k.taux * 100, 2)} % (annoncé ${num(pNiveau * 100, 2)} %)`],
+          ['Statistique de Kupiec (LR)', num(k.LR, 3)],
+          ['Seuil de rejet à 95 %', '3,841'],
+          ['Verdict statistique', k.rejete ? 'modèle rejeté' : 'modèle non rejeté'],
+          ['Zone de Bâle', z.zone],
+          ['Majoration du multiplicateur', num(z.majoration, 2)],
+          ['Multiplicateur applicable', num(z.multiplicateur, 2)],
+        ],
+        steps: `1) Combien d'exceptions devrait-on observer ?
+   n × (1 − α) = ${n} × ${num(pNiveau, 4)} = ${num(k.attendu, 2)}
+   Constaté : ${x}. ${x > k.attendu ? "Davantage qu'attendu — le modèle pourrait sous-estimer le risque."
+                    : x < k.attendu ? "Moins qu'attendu — le modèle est peut-être trop prudent."
+                    : "Exactement la valeur attendue."}
+
+2) Test de Kupiec — l'écart est-il statistiquement significatif ?
+   LR = ${num(k.LR, 3)}, à comparer au seuil de 3,841 (khi-deux à 1 degré de liberté, 95 %)
+   → ${k.rejete ? "LR dépasse le seuil : l'hypothèse « le modèle est correctement calibré » est REJETÉE."
+                : "LR reste sous le seuil : on ne peut pas rejeter le modèle sur ce seul critère."}
+
+3) Dispositif prudentiel des feux tricolores${pertinent ? '' : `
+   (calibré pour 250 jours à 99 % — vos paramètres diffèrent, lecture indicative)`}
+   Zone ${z.zone.toUpperCase()} : ${z.message}
+   Multiplicateur de fonds propres : 3,00 + ${num(z.majoration, 2)} = ${num(z.multiplicateur, 2)}
+
+Deux lectures à ne pas confondre — et c'est un excellent point d'entretien :
+le test statistique et le dispositif prudentiel ne coïncident pas. Avec 5 exceptions sur 250 jours,
+Kupiec ne rejette pas le modèle, alors que Bâle place déjà l'établissement en zone orange.
+Le régulateur est délibérément plus sévère que la statistique pure.
+
+À vérifier aussi : l'INDÉPENDANCE des exceptions (test de Christoffersen). Cinq exceptions
+dispersées dans l'année sont acceptables ; cinq exceptions la même semaine signalent un modèle
+qui ne réagit pas assez vite aux changements de régime de volatilité.
+Enfin, le back-testing se fait sur un P&L hypothétique (positions figées), jamais sur le P&L réel.`,
+      };
+    },
+  },
+
+  credit: {
+    title: 'Risque de crédit : PD implicite et Merton',
+    sub: "Du spread de marché à la probabilité de défaut, et le modèle structurel",
+    ref: 'Hull ch. 24',
+    formula: `Forme réduite :  spread ≈ λ × (1 − R)  ⇒  λ = spread/(1 − R)
+PD cumulée sur T = 1 − e^(−λT)
+Merton : capitaux propres = call sur l'actif, de strike la dette
+d₂ = [ln(V/D) + (r − σ²/2)T] / (σ√T)      PD = N(−d₂)`,
+    fields: [
+      { name: 'spread', label: 'Spread de crédit (bp)', value: 150 },
+      { name: 'recov', label: 'Taux de recouvrement R (%)', value: 40 },
+      { name: 'horizon', label: 'Horizon (années)', value: 5 },
+      { name: 'V', label: "Merton : valeur de l'actif", value: 100 },
+      { name: 'D', label: 'Merton : dette à rembourser', value: 80 },
+      { name: 'sigmaV', label: "Merton : volatilité de l'actif (%)", value: 25 },
+      { name: 'r', label: 'Taux sans risque (%)', value: 3 },
+      { name: 'T', label: 'Merton : échéance de la dette (années)', value: 1 },
+      { name: 'EAD', label: 'Exposition au défaut EAD (€)', value: 10000000 },
+    ],
+    compute(v) {
+      const R = Math.min(Math.max(v.recov / 100, 0), 0.999);
+      const T = Math.max(v.horizon, 0.01);
+      const red = pdImplicite(v.spread, R, T);
+      const m = merton({ V: v.V, D: v.D, T: Math.max(v.T, 0.01), r: v.r / 100, sigmaV: Math.max(v.sigmaV / 100, 1e-4) });
+      const EL = red.pdCumulee * red.lgd * v.EAD;
+      const ELan = red.pdAn * red.lgd * v.EAD;
+      return {
+        main: `${num(red.pdCumulee * 100, 2)} %`,
+        mainLabel: `Probabilité de défaut cumulée sur ${num(T, 1)} an(s)`,
+        kv: [
+          ['LGD (perte en cas de défaut)', `${num(red.lgd * 100, 1)} %`],
+          ['Intensité de défaut λ', `${num(red.lambda * 100, 3)} % par an`],
+          ['PD sur 1 an', `${num(red.pdAn * 100, 3)} %`],
+          [`PD cumulée sur ${num(T, 1)} ans`, `${num(red.pdCumulee * 100, 2)} %`],
+          ['Perte attendue annuelle', `${num(ELan, 0)} €`],
+          [`Perte attendue sur ${num(T, 1)} ans`, `${num(EL, 0)} €`],
+          ['— Merton : capitaux propres', num(m.capitaux, 3)],
+          ['— Merton : valeur de la dette', num(m.dette, 3)],
+          ['— Merton : distance au défaut', `${num(m.distanceDefaut, 3)} écarts-types`],
+          ['— Merton : PD', `${num(m.pd * 100, 2)} %`],
+          ['— Merton : spread impliqué', `${num(m.spread * 10000, 0)} bp`],
+        ],
+        steps: `PARTIE 1 — Ce que le marché dit du risque (forme réduite)
+
+1) LGD = 1 − R = 1 − ${num(R, 3)} = ${num(red.lgd, 3)}
+   On ne perd pas tout en cas de défaut : on récupère une partie en liquidant.
+
+2) Le spread rémunère la perte attendue par unité de temps
+   λ = spread / LGD = ${num(v.spread / 10000, 5)} / ${num(red.lgd, 3)} = ${num(red.lambda, 5)} par an
+   soit ${num(red.lambda * 100, 3)} % de chances de faire défaut dans l'année.
+
+3) PD cumulée = 1 − e^(−λT) = 1 − e^(−${num(red.lambda, 5)}×${num(T, 2)}) = ${num(red.pdCumulee * 100, 2)} %
+   Ce n'est pas λ × T : la survie se compose, comme des intérêts.
+
+4) Perte attendue = PD × LGD × EAD = ${num(red.pdCumulee, 4)} × ${num(red.lgd, 3)} × ${num(v.EAD, 0)}
+   = ${num(EL, 0)} € sur l'horizon (${num(ELan, 0)} € pour la première année)
+
+PARTIE 2 — Le modèle structurel de Merton
+
+5) L'idée : les actionnaires possèdent un call sur l'actif de l'entreprise.
+   Si à l'échéance l'actif dépasse la dette, ils remboursent et gardent le surplus.
+   Sinon ils abandonnent l'entreprise aux créanciers : leur perte est plafonnée à leur mise.
+   Les fonds propres sont donc évalués exactement comme une option d'achat.
+
+6) Actif ${num(v.V, 2)}, dette ${num(v.D, 2)}, volatilité ${num(v.sigmaV, 1)} %, échéance ${num(v.T, 2)} an
+   d₂ = ${num(m.d2, 4)} → c'est la distance au défaut, en écarts-types
+   PD = N(−d₂) = ${num(m.pd * 100, 2)} %
+
+7) Répartition de la valeur : capitaux propres ${num(m.capitaux, 3)} + dette ${num(m.dette, 3)} = ${num(m.capitaux + m.dette, 3)}
+   La somme redonne bien la valeur de l'actif : rien ne se crée ni ne se perd.
+   Spread de crédit impliqué : ${num(m.spread * 10000, 0)} bp
+
+Limites à citer en entretien : Merton suppose une dette unique à échéance connue, une valeur
+d'actif observable et continue — donc pas de saut. Les probabilités obtenues sont
+« risque-neutre », systématiquement plus élevées que les probabilités historiques, car elles
+contiennent une prime de risque. Ne jamais présenter une PD extraite d'un spread comme une
+probabilité réelle de faillite.`,
       };
     },
   },

@@ -78,6 +78,42 @@ const C = {
   pfe: "Ton exposition à un partenaire n'est pas figée : elle grandit et rétrécit avec les marchés. La PFE répond à « dans le pire des cas raisonnables, jusqu'où peut-elle monter d'ici trois ans ? ». C'est cette projection, et non le montant d'aujourd'hui, qui sert à fixer les limites.",
 
   prudentValuation: "Quand la valeur d'un actif est incertaine, le régulateur exige de retenir volontairement une estimation prudente plutôt que la plus flatteuse. La différence est retirée des fonds propres de la banque. Une façon de dire : « tant que ce n'est pas vendu, ne comptez pas dessus ».",
+
+  varHistDetail: "Méthode la plus honnête : au lieu de supposer une jolie formule, on prend les 500 derniers jours de marché et on demande « si CETTE journée-là se reproduisait aujourd'hui, avec mes positions actuelles, je perdrais combien ? ». On obtient 500 réponses, on les classe de la pire à la meilleure, et on lit la cinquième. Défaut évident : on ne voit que ce qui est déjà arrivé.",
+
+  fenetre: "Combien d'histoire faut-il regarder ? Deux ans seulement, et on est réactif mais on risque de n'avoir aucune crise dans son échantillon. Dix ans, et on mélange des époques qui n'ont rien à voir. En 2007, beaucoup de banques calculaient sur deux ans très calmes : leurs chiffres étaient rassurants, à tort. D'où l'obligation ajoutée depuis de calculer AUSSI sur une période de crise connue.",
+
+  ponderation: "Amélioration simple de la méthode : la journée d'hier compte plus que celle d'il y a deux ans. On garde l'avantage de travailler sur du réel, tout en réagissant plus vite quand le marché change d'humeur.",
+
+  monteCarlo: "Au lieu de rejouer le passé, on invente des milliers de futurs possibles avec un modèle, et on recalcule le portefeuille dans chacun. Très souple, indispensable quand on détient des options. Mais tout repose sur la qualité du modèle : des futurs inventés par une machine restent des inventions.",
+
+  deltaGamma: "Recalculer la valeur exacte de milliers d'options dans des milliers de scénarios prendrait des heures. Alors on approxime : on sait de combien ça bouge au premier ordre (delta) et on corrige avec la courbure (gamma). Rapide et suffisant la plupart du temps — sauf pour les produits à effet de seuil, où tout bascule d'un coup.",
+
+  axiomes: "Les mathématiciens ont défini quatre propriétés que devrait respecter toute mesure de risque sérieuse. La VaR en rate une : elle peut prétendre qu'un portefeuille diversifié est PLUS risqué que la somme de ses parties, ce qui est absurde. Conséquence concrète : impossible de répartir proprement des limites entre équipes avec elle. L'Expected Shortfall passe les quatre.",
+
+  pnlHypo: "Pour juger un modèle honnêtement, il faut le comparer à ce qu'il prétendait mesurer. La VaR annonce le risque des positions du soir, sans les allers-retours de la journée ni les frais. On la compare donc à un résultat reconstitué à positions figées, pas au vrai résultat du desk. Dire l'inverse en entretien est une erreur qui se remarque.",
+
+  christoffersen: "Compter les alertes ne suffit pas : encore faut-il regarder QUAND elles arrivent. Cinq dépassements répartis sur l'année, c'est de la malchance normale. Les cinq mêmes en une semaine, c'est le signe que ton modèle n'a pas vu qu'on avait changé d'époque et qu'il continue à annoncer un calme disparu.",
+
+  garch: "Perfectionnement du calcul de nervosité. On garde l'idée que les jours récents comptent plus, mais on ajoute quelque chose de vrai : la volatilité finit toujours par revenir vers sa moyenne de long terme. Après une tempête, le calme revient — un bon modèle doit le prévoir plutôt que de rester paniqué indéfiniment.",
+
+  procyclicite: "Le serpent qui se mord la queue. Le marché chute, les modèles annoncent plus de risque, les limites sont dépassées, tout le monde doit vendre — ce qui fait chuter le marché davantage. La mesure du risque devient elle-même une cause du risque. On l'a vu sur les appels de marge en mars 2020 et sur les fonds de retraite britanniques en 2022.",
+
+  correlationsQueue: "Deux placements peuvent sembler indépendants au quotidien et s'effondrer main dans la main le jour de la crise. Le chiffre de corrélation habituel ne voit pas ça du tout : il décrit le comportement moyen, pas le comportement des jours catastrophiques. Mal évaluer cette dépendance des extrêmes a été l'une des erreurs techniques de 2008.",
+
+  merton: "Idée brillante et simple. Quand une entreprise est endettée, les actionnaires sont en réalité titulaires d'une réservation : si l'entreprise vaut plus que ses dettes, ils remboursent et gardent la différence ; sinon ils s'en vont et laissent tout aux créanciers. Leur perte est plafonnée à leur mise — exactement le profil d'une option d'achat. On peut donc valoriser une entreprise avec les formules d'options.",
+
+  distanceDefaut: "Plutôt que d'annoncer « 3,2 % de chances de faire faillite », on dit « l'entreprise est à 4 écarts-types du gouffre ». C'est plus parlant, plus stable, et ça évite de donner à un chiffre de probabilité une précision qu'il n'a pas.",
+
+  pdRN: "Piège majeur d'entretien. La probabilité de défaut qu'on déduit du prix de marché est TOUJOURS plus élevée que celle qu'on observe vraiment sur les faillites. Pourquoi ? Parce que le prix contient aussi la rémunération de l'incertitude et de l'illiquidité. On utilise la première pour valoriser, la seconde pour gérer le risque. Les confondre fausse tout.",
+
+  pdLgd: "Mauvaise nouvelle en cascade : en récession, non seulement il y a plus de faillites, mais on récupère moins sur chacune — tout le monde essaie de revendre les mêmes usines et les mêmes immeubles au même moment. Supposer que ces deux malheurs sont indépendants sous-estime largement la perte. Le régulateur impose donc de retenir un taux de récupération de mauvaise période.",
+
+  facteurUnique: "Toutes les entreprises subissent un peu le même vent : la conjoncture. Le reste est propre à chacune. Le dosage entre les deux détermine si les faillites arrivent isolément ou toutes en même temps — et donc combien de capital il faut mettre de côté. C'est le paramètre le plus sensible et le plus discuté du calcul.",
+
+  creditVar: "La distribution des pertes de crédit est très déséquilibrée : la plupart du temps on perd peu, et de temps en temps on perd énormément. On provisionne la perte normale, et on garde du capital pour l'année exceptionnelle. Bâle demande de tenir un scénario qui n'arrive qu'une année sur mille.",
+
+  stressedVar: "Deux garde-fous contre l'oubli. D'abord, calculer aussi le risque comme si on était en pleine crise de 2008, pour éviter qu'une période calme n'endorme tout le monde. Ensuite, arrêter de supposer que tout se revend en dix jours : une obligation de petite entreprise met bien plus longtemps qu'un contrat sur indice.",
 };
 
 export default {
@@ -141,4 +177,32 @@ export default {
   'ris-g21': C.irrbb,
   'ris-g22': C.prudentValuation,
   'ris-g23': C.conduite,
+  'ris-f37': C.varHistDetail,
+  'ris-f38': C.fenetre,
+  'ris-f39': C.ponderation,
+  'ris-f40': C.monteCarlo,
+  'ris-f41': C.deltaGamma,
+  'ris-f42': C.axiomes,
+  'ris-f43': C.pnlHypo,
+  'ris-f44': C.christoffersen,
+  'ris-f45': C.garch,
+  'ris-f46': C.procyclicite,
+  'ris-f47': C.correlationsQueue,
+  'ris-f48': C.merton,
+  'ris-f49': C.distanceDefaut,
+  'ris-f50': C.pdRN,
+  'ris-f51': C.pdLgd,
+  'ris-f52': C.facteurUnique,
+  'ris-f53': C.creditVar,
+  'ris-f54': C.stressedVar,
+  'ris-g24': C.varHistDetail,
+  'ris-g25': C.stressedVar,
+  'ris-g26': C.deltaGamma,
+  'ris-g27': C.axiomes,
+  'ris-g28': C.christoffersen,
+  'ris-g29': C.garch,
+  'ris-g30': C.distanceDefaut,
+  'ris-g31': C.pdRN,
+  'ris-g32': C.pdLgd,
+  'ris-g33': C.facteurUnique,
 };
