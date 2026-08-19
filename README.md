@@ -20,10 +20,16 @@ capital) est volontairement exclu.
 | **Gestion de portefeuille** | Diversification, frontière efficiente, MEDAF, ratios, allocation, attribution |
 | **Risques** | VaR, Expected Shortfall, stress testing, crédit, contrepartie, opérationnel, RCSA, KRI, liquidité |
 | **Réglementaire** | Bâle III/IV, FRTB, MiFID II, EMIR, UCITS/AIFM, SFDR, PRIIPs, MAR, CSDR, DORA |
+| **Dérivés — approfondissement** | Arbitrage et réplication, arbres binomiaux, évaluation risque-neutre, grecques, stratégies optionnelles |
 
-**Contenu embarqué dès le premier lancement** : 188 flashcards · 144 questions de quiz ·
-124 fiches de glossaire · 58 questions d'entretien · 12 leçons de découverte ·
-312 explications en langage courant.
+**Contenu embarqué dès le premier lancement** : 215 flashcards · 162 questions de quiz ·
+142 fiches de glossaire · 64 questions d'entretien · 16 leçons de découverte ·
+357 explications en langage courant.
+
+Le module d'approfondissement suit la progression de J. C. Hull, *Options, Futures and Other
+Derivatives* (11ᵉ éd.), utilisé comme ouvrage de référence. Les explications sont rédigées en propre
+et les schémas redessinés ; chaque carte, fiche et outil porte la référence du chapitre
+(« Hull ch. 13 ») pour aller lire le détail à la source.
 
 ---
 
@@ -49,13 +55,18 @@ Le vocabulaire de la finance de marché est un mur pour un non-initié. Deux dis
   (« À revoir » / « Difficile » / « Correct » / « Facile ») avec aperçu du prochain intervalle.
 - **Quiz QCM par module** — feedback immédiat avec explication, historique des scores dans le temps.
 - **Calculateurs** — pricing obligataire (prix, duration, convexité, DV01), Black-Scholes et grecques,
+  **arbre binomial** (européen et américain, avec prime d'exercice anticipé et convergence vers
+  Black-Scholes), **grecques agrégées d'un portefeuille** et couverture associée,
   VaR paramétrique et Expected Shortfall, P&L avec effet de levier, cross de change et taux à terme.
   Chacun affiche **la formule utilisée et le détail des étapes**, pas seulement le résultat.
 - **Glossaire** — recherche instantanée (as-you-type, insensible aux accents), fiches denses :
   définition, formule, piège à connaître.
 - **Graphiques interactifs** — courbe des taux (normale / plate / inversée / bossue, avec forwards
-  implicites), payoff d'options, relation prix-taux avec tangente de duration, frontière efficiente
-  avec GMV, portefeuille tangent et CML. SVG généré à la volée, sans librairie externe.
+  implicites), **arbre binomial cliquable** avec repérage de l'exercice anticipé, **12 stratégies
+  optionnelles** (spreads, straddle, butterfly, condor, collar, box…) avec points morts et bornes de
+  gain, **profils des quatre grecques** selon le spot et la maturité, payoff d'options, relation
+  prix-taux avec tangente de duration, frontière efficiente avec GMV, portefeuille tangent et CML.
+  SVG généré à la volée, sans librairie externe.
 - **Simulateur d'entretien** — questions ouvertes chronométrées, sans correction automatique,
   avec trame de réponse affichable a posteriori.
 - **Notes & marque-pages** — note libre sur n'importe quelle carte, fiche ou question, et marquage
@@ -154,6 +165,7 @@ js/
   store.js              Logique métier : SRS, streak, scores, notes, marque-pages
   ui.js                 Utilitaires d'interface (échappement, formats, toasts)
   settings.js           Réglages d'affichage (mode « Expliquer simplement »)
+  lib/bs.js             Briques de calcul partagées : loi normale, Black-Scholes, grecques, arbre binomial
   data/
     index.js            Agrégation et index du contenu
     decouverte.js       Les 12 leçons du parcours « Bases »
@@ -164,6 +176,7 @@ js/
     portefeuille.js     Module Gestion de portefeuille
     risques.js          Module Risques
     reglementaire.js    Module Réglementaire
+    hull.js             Module Dérivés — approfondissement
   views/
     dashboard.js  comprendre.js  flashcards.js  quiz.js  calculateurs.js
     glossaire.js  graphiques.js  entretien.js  marques.js  reglages.js

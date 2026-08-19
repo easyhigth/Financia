@@ -71,7 +71,7 @@ export default async function glossaire(route, { el }) {
           <div class="gloss-entry" data-id="${esc(g.id)}">
             <div class="row between">
               <span class="term">${highlight(g.term, terms)}</span>
-              <span class="pill">${esc(g.moduleName)}</span>
+              <span class="pill">${esc(g.ref || g.moduleName)}</span>
             </div>
             <div class="dim" style="font-size:.92rem;margin-top:4px">${highlight(g.def, terms)}</div>
             ${g.formula ? `<div class="formula">${esc(g.formula)}</div>` : ''}

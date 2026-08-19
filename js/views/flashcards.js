@@ -88,7 +88,7 @@ async function session(route, { el, navigate }) {
     const st = card.srs || newState(card.id);
     body.innerHTML = `
       <div class="flash">
-        <div class="tagline">${esc(card.moduleName)}</div>
+        <div class="tagline">${esc(card.moduleName)}${card.ref ? ` · ${esc(card.ref)}` : ''}</div>
         <div class="front">${nl2br(card.front)}</div>
         ${revealed ? `
           <div class="back">

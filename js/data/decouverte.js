@@ -229,4 +229,85 @@ export default [
       ['Conformité', "L'équipe chargée du respect des règles et de la protection du client."],
     ],
   },
+
+  {
+    id: 'dec-13',
+    title: "L'arbitrage : pourquoi un prix ne peut pas être n'importe quoi",
+    sub: "La règle qui fixe le prix de tous les produits dérivés",
+    minutes: 4,
+    sections: [
+      { h: "L'expérience de pensée", p: "Imagine qu'un billet de 20 € se vende 18 € à un guichet et se rachète 22 € au guichet d'à côté. Tu ferais l'aller-retour en boucle jusqu'à épuisement du stock. Ce genre de situation ne peut donc pas durer : quelqu'un la ferait disparaître en quelques secondes. C'est tout le principe de l'arbitrage." },
+      { h: "La règle, en une phrase", p: "Si deux choses rapportent exactement la même somme dans tous les cas de figure, elles doivent coûter le même prix aujourd'hui. Sinon, on vend la chère, on achète la bon marché, et on encaisse la différence sans avoir rien risqué. Comme personne ne distribue d'argent gratuit, les prix s'alignent." },
+      { h: "Pourquoi c'est si puissant", p: "Cette règle permet de calculer le prix d'un produit compliqué SANS avoir la moindre opinion sur l'avenir. On n'a pas besoin de savoir si le marché va monter ou baisser : il suffit de fabriquer la même chose avec des ingrédients dont on connaît déjà le prix. Toute la finance de marché repose là-dessus." },
+      { h: "La recette de cuisine", p: "On appelle ça la réplication. Pour savoir combien vaut une option, on ne devine pas : on la fabrique soi-même avec des actions et de l'argent, on regarde combien coûtent les ingrédients, et voilà le prix. Si l'option se vendait plus cher, on la vendrait en fabriquant la sienne, et on empocherait l'écart." },
+    ],
+    retenir: "Mêmes flux futurs = même prix aujourd'hui, sinon il y a de l'argent gratuit à ramasser. On calcule donc le prix d'une option en la fabriquant avec des ingrédients connus, sans prédire l'avenir.",
+    mots: [
+      ['Arbitrage', "Gain sans risque et sans mise de départ. En théorie impossible, en pratique fugace."],
+      ['Réplication', "Fabriquer le même résultat qu'un produit avec des ingrédients simples."],
+      ['Loi du prix unique', "Deux choses identiques ne peuvent pas avoir deux prix."],
+    ],
+  },
+
+  {
+    id: 'dec-14',
+    title: "L'arbre binomial, avec une pièce de monnaie",
+    sub: "Le prix d'une option calculé à la main, sans une seule formule compliquée",
+    minutes: 6,
+    sections: [
+      { h: "Simplifions le monde à l'extrême", p: "Une action vaut 20 €. Dans trois mois, admettons qu'elle ne puisse faire que deux choses : monter à 22 € ou descendre à 18 €. C'est évidemment faux dans la vraie vie, mais avec seulement deux possibilités on peut tout calculer sur un coin de table — et le raisonnement restera valable quand on affinera." },
+      { h: "L'option qu'on veut évaluer", p: "Une réservation d'achat à 21 €. Si l'action monte à 22, elle rapporte 1 €. Si elle descend à 18, elle ne rapporte rien. Question : combien vaut cette réservation aujourd'hui ? La tentation est de dire « ça dépend des chances que ça monte ». C'est justement l'erreur." },
+      { h: "L'astuce : fabriquer un mélange sans risque", p: "Achetons un quart d'action et vendons une réservation. Si l'action monte : le quart d'action vaut 5,50 €, mais on doit 1 € sur la réservation, il reste 4,50 €. Si elle baisse : le quart d'action vaut 4,50 €, on ne doit rien, il reste 4,50 €. Le même montant dans les deux cas ! Ce mélange ne risque donc rien." },
+      { h: "Et donc le prix tombe tout seul", p: "Une chose sans risque doit rapporter le taux d'un placement sans risque, ni plus ni moins — sinon, retour à l'arbitrage de la leçon précédente. On calcule ce que vaut aujourd'hui ce 4,50 € futur, on sait qu'un quart d'action coûte 5 €, et par soustraction on obtient le prix de la réservation. Aucune opinion sur l'avenir n'a été nécessaire." },
+      { h: "Le quart d'action a un nom", p: "Cette quantité — un quart — s'appelle le delta. On l'a obtenue en divisant l'écart des valeurs de l'option (1 − 0 = 1) par l'écart des valeurs de l'action (22 − 18 = 4). Retiens que le delta n'est pas un concept abstrait : c'est littéralement le nombre d'actions à détenir pour ne plus rien risquer." },
+      { h: "Et avec plus de deux possibilités ?", p: "On recommence, mais en plusieurs étapes : chaque mois, ça monte un peu ou ça baisse un peu. On obtient un arbre qui se ramifie. On calcule d'abord la dernière colonne (à l'échéance, on connaît le résultat), puis on remonte case par case vers aujourd'hui. Avec trente ou cent étapes, on s'approche autant qu'on veut de la réalité." },
+    ],
+    retenir: "En simplifiant à deux issues, on peut construire un mélange actions + option qui vaut la même chose dans les deux cas. Ce mélange est sans risque, donc son rendement est connu — et le prix de l'option s'en déduit, sans prédire quoi que ce soit.",
+    mots: [
+      ['Arbre binomial', "Découpage du temps en étapes où le prix ne peut que monter ou baisser."],
+      ['Delta', "Le nombre d'actions à détenir par option pour annuler le risque."],
+      ['Induction rétrograde', "Calculer en partant de la fin et en remontant vers aujourd'hui."],
+    ],
+  },
+
+  {
+    id: 'dec-15',
+    title: "La probabilité qui n'en est pas une",
+    sub: "Le concept le plus contre-intuitif de la finance — et un piège d'entretien",
+    minutes: 5,
+    sections: [
+      { h: "Un résultat déroutant", p: "Reprends l'exemple précédent. Le prix trouvé ne dépend à aucun moment des chances réelles que l'action monte. Que tu sois convaincu d'une hausse à 90 % ou d'une baisse à 90 %, tu obtiens exactement le même prix pour l'option. La première fois, ça semble absurde." },
+      { h: "Pourquoi c'est pourtant logique", p: "Parce que ton opinion sur l'action est DÉJÀ dans son prix. Si tout le monde pensait qu'elle va monter, elle serait déjà plus chère. Or on fabrique l'option à partir de l'action, à son prix actuel. Réutiliser ton opinion reviendrait à la compter deux fois. Ce qu'on évalue, ce n'est pas l'action : c'est l'option PAR RAPPORT à l'action." },
+      { h: "Le tour de passe-passe des calculs", p: "Les financiers ont remarqué qu'on peut réécrire le résultat sous la forme d'une moyenne, à condition d'utiliser un chiffre bien choisi entre 0 et 1. Ce chiffre ressemble à une probabilité, il s'écrit comme une probabilité, il se manipule comme une probabilité. Mais il ne correspond à la croyance de personne : c'est simplement le nombre qui fait tomber les comptes juste." },
+      { h: "Le piège d'entretien", p: "On l'appelle « probabilité risque-neutre ». Si tu dis en entretien « c'est la probabilité que le titre monte », c'est éliminatoire dans une équipe de risque — c'est LA confusion que tout le monde guette. La bonne formulation : « c'est la pondération sous laquelle le sous-jacent rapporte le taux sans risque, un outil de calcul, pas une prévision »." },
+      { h: "Ce que ça change concrètement", p: "Cela veut dire qu'un vendeur d'options ne parie pas sur la direction du marché — il se couvre. Son métier n'est pas de deviner, mais de fabriquer et d'ajuster. C'est exactement pour cela qu'un gestionnaire de risques regarde ses positions de couverture et pas ses opinions." },
+    ],
+    retenir: "Le prix d'une option ne dépend pas des chances réelles de hausse : elles sont déjà dans le prix de l'action. La « probabilité risque-neutre » est un outil de calcul, jamais une prévision — ne jamais dire l'inverse en entretien.",
+    mots: [
+      ['Probabilité risque-neutre', "Pondération de calcul rendant l'actif rentable au taux sans risque."],
+      ['Univers risque-neutre', "Le cadre fictif où tout le monde se moque du risque. Un artifice, pas une description du monde."],
+      ['Prime de risque', "Ce que le marché exige en plus du taux sans risque. Elle est dans le prix de l'action, pas dans celui de l'option."],
+    ],
+  },
+
+  {
+    id: 'dec-16',
+    title: "Les grecques : le tableau de bord",
+    sub: "Les quatre cadrans que surveille un opérateur d'options",
+    minutes: 6,
+    sections: [
+      { h: "Le problème", p: "Tu as des centaines d'options en portefeuille, avec des échéances et des prix d'exercice différents. Impossible de raisonner ligne par ligne. Il faut quelques chiffres qui résument : si TELLE chose bouge, je gagne ou je perds combien ? Ce sont les grecques, ainsi nommées parce qu'on les note avec des lettres grecques." },
+      { h: "Delta — la direction", p: "Si le sous-jacent monte d'un euro, je gagne combien ? C'est le cadran principal. On peut le ramener à zéro en achetant ou vendant des actions : on dit alors qu'on est « delta-neutre », c'est-à-dire indifférent à la direction du marché. La plupart des opérateurs d'options passent leur journée à maintenir ce cadran à zéro." },
+      { h: "Gamma — la stabilité du delta", p: "Le problème, c'est que le delta ne reste pas en place : il change dès que le marché bouge. Le gamma mesure cette instabilité. Gros gamma, c'est un volant nerveux : tu corriges sans arrêt, et chaque correction coûte des frais. Le gamma est maximal juste avant l'échéance, autour du prix d'exercice — le pire endroit et le pire moment." },
+      { h: "Vega — la nervosité ambiante", p: "Tu peux être parfaitement neutre en direction et perdre gros quand même : il suffit que le marché devienne globalement plus calme, car tes options valent alors moins cher. Ce cadran-là ne se règle pas avec des actions ; il faut d'autres options. C'est ce qui rend la couverture d'un book difficile." },
+      { h: "Theta — le temps qui passe", p: "Chaque jour qui passe, une option perd un peu de valeur : il reste moins de temps pour qu'il se passe quelque chose. L'acheteur subit cette érosion, le vendeur l'encaisse. Et il existe une loi implacable : si ta position profite des mouvements du marché (gamma positif), elle perd forcément de la valeur chaque jour (theta négatif). Impossible d'avoir les deux." },
+      { h: "Ce qu'un risk manager en fait", p: "Il ne les calcule pas — les systèmes le font. Il vérifie qu'elles restent dans les limites autorisées, il comprend d'où viennent les variations, et surtout il sait que ces quatre cadrans ne suffisent pas : ils décrivent de petits mouvements. Pour les krachs, il faut des scénarios de stress. Savoir dire ça vaut mieux que réciter les définitions." },
+    ],
+    retenir: "Quatre cadrans : delta (direction), gamma (instabilité du delta), vega (nervosité du marché), theta (temps qui passe). Gamma positif implique theta négatif : la convexité se paie. Et ces mesures ne valent que pour de petits mouvements.",
+    mots: [
+      ['Delta-neutre', "Position insensible à la direction du marché, au premier ordre."],
+      ['Rebalancement', "Réajuster la couverture quand le delta a dérivé."],
+      ['Book', "Le portefeuille de positions d'une équipe de trading."],
+    ],
+  },
 ];

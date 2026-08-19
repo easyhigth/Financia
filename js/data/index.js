@@ -5,8 +5,9 @@ import fx from './fx.js';
 import portefeuille from './portefeuille.js';
 import risques from './risques.js';
 import reglementaire from './reglementaire.js';
+import hull from './hull.js';
 
-export const MODULES = [taux, derives, fx, portefeuille, risques, reglementaire];
+export const MODULES = [taux, derives, fx, portefeuille, risques, reglementaire, hull];
 
 export const MODULE_BY_ID = Object.fromEntries(MODULES.map((m) => [m.id, m]));
 

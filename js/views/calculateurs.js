@@ -1,36 +1,6 @@
 // Vue Calculateurs : chaque outil affiche la formule employée et le détail des étapes.
 import { esc, pageHead, num, fieldNum, toast } from '../ui.js';
-
-// --------------------------------------------------------- Fonctions mathématiques
-/** Loi normale centrée réduite : densité. */
-const phi = (x) => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
-
-/** Fonction de répartition normale (Abramowitz & Stegun 7.1.26, erreur < 7,5e-8). */
-function N(x) {
-  const s = x < 0 ? -1 : 1;
-  const z = Math.abs(x) / Math.SQRT2;
-  const t = 1 / (1 + 0.3275911 * z);
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z);
-  return 0.5 * (1 + s * y);
-}
-
-/** Quantile de la loi normale (Acklam), utilisé pour la VaR. */
-function normInv(p) {
-  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
-  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
-  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
-  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
-  const pl = 0.02425;
-  let q, r;
-  if (p < pl) {
-    q = Math.sqrt(-2 * Math.log(p));
-    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
-  }
-  if (p > 1 - pl) return -normInv(1 - p);
-  q = p - 0.5; r = q * q;
-  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
-         (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
-}
+import { phi, N, normInv, bs, binomial } from '../lib/bs.js';
 
 // ---------------------------------------------------------------- Calculateurs
 const CALCS = {
@@ -132,18 +102,9 @@ P = K·e^(−rT)·N(−d₂) − S·e^(−qT)·N(−d₁)`,
       const { S, K } = v;
       const T = Math.max(v.T, 1e-8);
       const r = v.r / 100, q = v.q / 100, s = Math.max(v.sigma / 100, 1e-8);
+      const g = bs({ S, K, T, r, q, sigma: s });
+      const { d1, d2, call, put, dfR, dfQ } = g;
       const sq = s * Math.sqrt(T);
-      const d1 = (Math.log(S / K) + (r - q + 0.5 * s * s) * T) / sq;
-      const d2 = d1 - sq;
-      const dfR = Math.exp(-r * T), dfQ = Math.exp(-q * T);
-      const call = S * dfQ * N(d1) - K * dfR * N(d2);
-      const put = K * dfR * N(-d2) - S * dfQ * N(-d1);
-      const deltaC = dfQ * N(d1), deltaP = deltaC - dfQ;
-      const gamma = (dfQ * phi(d1)) / (S * sq);
-      const vega = S * dfQ * phi(d1) * Math.sqrt(T) / 100;              // pour +1 pt de vol
-      const thetaC = (-(S * dfQ * phi(d1) * s) / (2 * Math.sqrt(T)) - r * K * dfR * N(d2) + q * S * dfQ * N(d1)) / 365;
-      const thetaP = (-(S * dfQ * phi(d1) * s) / (2 * Math.sqrt(T)) + r * K * dfR * N(-d2) - q * S * dfQ * N(-d1)) / 365;
-      const rhoC = K * T * dfR * N(d2) / 100, rhoP = -K * T * dfR * N(-d2) / 100;
       const parity = call - put - (S * dfQ - K * dfR);
       return {
         main: `Call ${num(call, 4)}  ·  Put ${num(put, 4)}`,
@@ -151,11 +112,11 @@ P = K·e^(−rT)·N(−d₂) − S·e^(−qT)·N(−d₁)`,
         kv: [
           ['d₁', num(d1, 5)], ['d₂', num(d2, 5)],
           ['N(d₁)', num(N(d1), 5)], ['N(d₂) — prob. risque-neutre d’exercice', num(N(d2), 5)],
-          ['Delta call / put', `${num(deltaC, 4)} / ${num(deltaP, 4)}`],
-          ['Gamma', num(gamma, 5)],
-          ['Vega (+1 pt de vol)', num(vega, 4)],
-          ['Theta call / put (par jour)', `${num(thetaC, 4)} / ${num(thetaP, 4)}`],
-          ['Rho call / put (+1 % de taux)', `${num(rhoC, 4)} / ${num(rhoP, 4)}`],
+          ['Delta call / put', `${num(g.deltaCall, 4)} / ${num(g.deltaPut, 4)}`],
+          ['Gamma', num(g.gamma, 5)],
+          ['Vega (+1 pt de vol)', num(g.vega, 4)],
+          ['Theta call / put (par jour)', `${num(g.thetaCall, 4)} / ${num(g.thetaPut, 4)}`],
+          ['Rho call / put (+1 % de taux)', `${num(g.rhoCall, 4)} / ${num(g.rhoPut, 4)}`],
           ['Valeur intrinsèque call / put', `${num(Math.max(S - K, 0), 4)} / ${num(Math.max(K - S, 0), 4)}`],
           ['Contrôle parité call-put', num(parity, 8)],
         ],
@@ -174,7 +135,170 @@ P = K·e^(−rT)·N(−d₂) − S·e^(−qT)·N(−d₁)`,
         = ${num(call, 4)} − ${num(S * dfQ, 4)} + ${num(K * dfR, 4)} = ${num(put, 4)}
 
 Lecture : N(d₂) = ${num(N(d2) * 100, 2)} % est la probabilité risque-neutre d'exercice ;
-le delta du call, ${num(deltaC, 4)}, est le nombre d'actions à détenir pour couvrir une option vendue.`,
+le delta du call, ${num(g.deltaCall, 4)}, est le nombre d'actions à détenir pour couvrir une option vendue.`,
+      };
+    },
+  },
+
+
+  binomial: {
+    title: 'Arbre binomial',
+    sub: 'Prix et delta par réplication, options européennes et américaines',
+    ref: 'Hull ch. 13',
+    formula: `u = e^(σ√Δt)   d = 1/u   Δt = T/n
+p = (e^((r−q)Δt) − d) / (u − d)          ← probabilité risque-neutre
+f = e^(−rΔt)·[p·f_haut + (1−p)·f_bas]    ← induction rétrograde
+Δ = (f_haut − f_bas) / (S·u − S·d)       ← portefeuille de réplication`,
+    fields: [
+      { name: 'S', label: 'Spot S', value: 100 },
+      { name: 'K', label: 'Strike K', value: 100 },
+      { name: 'T', label: 'Maturité T (années)', value: 1 },
+      { name: 'r', label: 'Taux sans risque r (%)', value: 3 },
+      { name: 'q', label: 'Dividende q (%)', value: 0 },
+      { name: 'sigma', label: 'Volatilité σ (%)', value: 20 },
+      { name: 'steps', label: "Nombre d'étapes n", value: 4 },
+      { name: 'type', label: 'Type : 1 = call, 0 = put', value: 1 },
+      { name: 'american', label: 'Exercice : 0 = européen, 1 = américain', value: 0 },
+    ],
+    compute(v) {
+      const type = v.type >= 0.5 ? 'call' : 'put';
+      const american = v.american >= 0.5;
+      const p = { S: v.S, K: v.K, T: Math.max(v.T, 1e-8), r: v.r / 100, q: v.q / 100,
+                  sigma: Math.max(v.sigma / 100, 1e-8), type };
+      const t = binomial({ ...p, steps: v.steps, american });
+      const euro = american ? binomial({ ...p, steps: v.steps, american: false }).price : t.price;
+      const ref = bs(p);
+      const bsPrice = type === 'put' ? ref.put : ref.call;
+      const fin = binomial({ ...p, steps: 300, american });
+
+      // détail des deux premiers nœuds, pour montrer le mécanisme
+      const l1 = t.n >= 1
+        ? `   nœud haut : S = ${num(t.stock[1][t.n >= 1 ? 1 : 0], 4)} → option ${num(t.val[1][1], 4)}
+   nœud bas  : S = ${num(t.stock[1][0], 4)} → option ${num(t.val[1][0], 4)}`
+        : '';
+
+      return {
+        main: `${num(t.price, 4)}`,
+        mainLabel: `${type === 'call' ? 'Call' : 'Put'} ${american ? 'américain' : 'européen'} · ${t.n} étape(s)`,
+        kv: [
+          ['Δt (durée d’une étape)', `${num(t.dt, 5)} an`],
+          ['u (facteur de hausse)', num(t.u, 5)],
+          ['d (facteur de baisse)', num(t.d, 5)],
+          ['p (probabilité risque-neutre)', num(t.p, 5)],
+          ['Delta initial', num(t.delta, 4)],
+          ['Prix avec 300 étapes', num(fin.price, 4)],
+          ['Référence Black-Scholes', num(bsPrice, 4)],
+          ['Écart au modèle continu', `${num(t.price - bsPrice, 4)}`],
+          ...(american ? [
+            ['Équivalent européen', num(euro, 4)],
+            ["Prime d'exercice anticipé", num(t.price - euro, 4)],
+          ] : []),
+        ],
+        steps: `1) Découpage du temps : Δt = T/n = ${num(p.T, 4)}/${t.n} = ${num(t.dt, 5)} an
+
+2) Amplitude des mouvements (Cox-Ross-Rubinstein)
+   u = e^(σ√Δt) = e^(${num(p.sigma, 4)}×${num(Math.sqrt(t.dt), 5)}) = ${num(t.u, 5)}
+   d = 1/u = ${num(t.d, 5)}
+   L'arbre est recombinant : une hausse puis une baisse ramène au point de départ.
+
+3) Probabilité risque-neutre
+   p = (e^((r−q)Δt) − d)/(u − d) = (${num(Math.exp((p.r - p.q) * t.dt), 6)} − ${num(t.d, 5)})/(${num(t.u, 5)} − ${num(t.d, 5)}) = ${num(t.p, 5)}
+   Ce n'est PAS la probabilité de hausse : c'est le poids qui rend l'actif rentable au taux sans risque.
+
+4) Valeurs à l'échéance : payoff = ${type === 'call' ? 'max(S − K, 0)' : 'max(K − S, 0)'} sur les ${t.n + 1} nœuds terminaux
+
+5) Induction rétrograde jusqu'à la racine${american ? `,
+   en comparant à chaque nœud la valeur de continuation à l'exercice immédiat` : ''}
+${l1}
+   → prix aujourd'hui = ${num(t.price, 4)}
+
+6) Couverture : Δ = (f_haut − f_bas)/(S·u − S·d) = ${num(t.delta, 4)}
+   Détenir ${num(t.delta, 4)} action(s) par option vendue neutralise le risque sur la première étape.
+
+Convergence : avec 300 étapes le prix vaut ${num(fin.price, 4)}, contre ${num(bsPrice, 4)} pour Black-Scholes.
+L'arbre est la version discrète du même raisonnement de réplication.${american ? `
+L'écart de ${num(t.price - euro, 4)} avec l'équivalent européen est la valeur du droit d'exercer plus tôt.` : ''}`,
+      };
+    },
+  },
+
+  grecques: {
+    title: "Grecques d'un portefeuille",
+    sub: 'Agrégation des sensibilités de plusieurs positions optionnelles',
+    ref: 'Hull ch. 19',
+    formula: `Δ_portefeuille = Σ qᵢ·Δᵢ      (idem Γ, ν, Θ)
+Actions à acheter pour la neutralité : −Δ_portefeuille
+Portefeuille delta-neutre : Θ + ½·σ²·S²·Γ = r·Π`,
+    fields: [
+      { name: 'S', label: 'Spot S', value: 100 },
+      { name: 'sigma', label: 'Volatilité σ (%)', value: 20 },
+      { name: 'r', label: 'Taux sans risque r (%)', value: 3 },
+      { name: 'q1', label: 'Position 1 : quantité (− = vendu)', value: -100 },
+      { name: 'K1', label: 'Position 1 : strike', value: 100 },
+      { name: 'T1', label: 'Position 1 : maturité (années)', value: 0.25 },
+      { name: 'c1', label: 'Position 1 : 1 = call, 0 = put', value: 1 },
+      { name: 'q2', label: 'Position 2 : quantité', value: 60 },
+      { name: 'K2', label: 'Position 2 : strike', value: 110 },
+      { name: 'T2', label: 'Position 2 : maturité (années)', value: 0.5 },
+      { name: 'c2', label: 'Position 2 : 1 = call, 0 = put', value: 1 },
+      { name: 'actions', label: 'Actions déjà détenues', value: 0 },
+    ],
+    compute(v) {
+      const S = v.S, r = v.r / 100, sigma = Math.max(v.sigma / 100, 1e-8);
+      const legs = [
+        { q: v.q1, K: v.K1, T: Math.max(v.T1, 1e-6), call: v.c1 >= 0.5 },
+        { q: v.q2, K: v.K2, T: Math.max(v.T2, 1e-6), call: v.c2 >= 0.5 },
+      ].filter((l) => l.q !== 0);
+
+      let delta = v.actions, gamma = 0, vega = 0, theta = 0, valeur = v.actions * S;
+      const lignes = [];
+      legs.forEach((l, i) => {
+        const g = bs({ S, K: l.K, T: l.T, r, q: 0, sigma });
+        const d = l.call ? g.deltaCall : g.deltaPut;
+        const th = l.call ? g.thetaCall : g.thetaPut;
+        const prix = l.call ? g.call : g.put;
+        delta += l.q * d; gamma += l.q * g.gamma;
+        vega += l.q * g.vega; theta += l.q * th;
+        valeur += l.q * prix;
+        lignes.push(`   position ${i + 1} : ${num(l.q, 0)} ${l.call ? 'call' : 'put'} K=${num(l.K, 2)} T=${num(l.T, 3)}
+      prix ${num(prix, 4)} · Δ ${num(d, 4)} · Γ ${num(g.gamma, 5)} · ν ${num(g.vega, 4)} · Θ ${num(th, 4)}
+      contribution : Δ ${num(l.q * d, 2)} · Γ ${num(l.q * g.gamma, 4)} · ν ${num(l.q * g.vega, 2)} · Θ ${num(l.q * th, 2)}`);
+      });
+
+      // Contrôle : la relation de BSM doit être vérifiée pour un portefeuille delta-neutre
+      const pnlGamma1pct = 0.5 * gamma * Math.pow(S * 0.01, 2);
+      return {
+        main: `Δ ${num(delta, 2)}`,
+        mainLabel: `Valeur du portefeuille : ${num(valeur, 2)}`,
+        kv: [
+          ['Delta total', num(delta, 3)],
+          ['Gamma total', num(gamma, 5)],
+          ['Vega total (+1 pt de vol)', num(vega, 3)],
+          ['Theta total (par jour)', num(theta, 3)],
+          ['Actions à négocier pour Δ = 0', num(-delta, 2)],
+          ['Coût de cette couverture', num(-delta * S, 2)],
+          ['Gain gamma si S bouge de 1 %', num(pnlGamma1pct, 3)],
+          ['Perte theta sur 1 jour', num(theta, 3)],
+          ['Solde gamma − theta (mouvement 1 %)', num(pnlGamma1pct + theta, 3)],
+        ],
+        steps: `1) Grecques position par position (valeurs unitaires puis contribution)
+${lignes.join('\n')}
+
+2) Agrégation — les grecques s'additionnent, pondérées par les quantités
+   Δ = ${num(delta, 3)}   Γ = ${num(gamma, 5)}   ν = ${num(vega, 3)}   Θ = ${num(theta, 3)}
+
+3) Neutralisation du delta
+   Négocier ${num(-delta, 2)} action(s), soit ${num(-delta * S, 2)} en montant.
+   Rappel d'ordre : le sous-jacent a un gamma et un vega NULS. Il ne corrige que le delta.
+   Pour annuler gamma et vega, il faut d'autres options — et ajuster le delta seulement après.
+
+4) Lecture du couple gamma / theta
+   Un mouvement de 1 % du sous-jacent rapporte ½·Γ·(ΔS)² = ${num(pnlGamma1pct, 3)}
+   Le passage d'une journée coûte ${num(theta, 3)}
+   Solde : ${num(pnlGamma1pct + theta, 3)} → ${pnlGamma1pct + theta >= 0
+     ? "le marché bouge assez pour payer l'érosion de la valeur temps."
+     : "le marché doit bouger davantage pour compenser l'érosion de la valeur temps."}
+   C'est l'arbitrage central d'un book d'options : Θ + ½σ²S²Γ = rΠ.`,
       };
     },
   },
@@ -379,6 +503,7 @@ export default async function calculateurs(route, { el }) {
       <a class="btn btn-sm btn-ghost" href="#/calculateurs">← Calculateurs</a>
     </div>
     ${pageHead(calc.title, calc.sub)}
+    ${calc.ref ? `<div class="pill" style="margin-bottom:10px">Référence : ${esc(calc.ref)}</div>` : ''}
     <div class="formula-box">${esc(calc.formula)}</div>
     <div class="card" style="margin-top:12px">
       <form id="calc-form">
