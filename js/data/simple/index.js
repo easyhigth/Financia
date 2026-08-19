@@ -6,9 +6,10 @@ import portefeuille from './portefeuille.js';
 import risques from './risques.js';
 import reglementaire from './reglementaire.js';
 import hull from './hull.js';
+import cas from './cas.js';
 
 export const SIMPLE = {
-  ...taux, ...derives, ...fx, ...portefeuille, ...risques, ...reglementaire, ...hull,
+  ...taux, ...derives, ...fx, ...portefeuille, ...risques, ...reglementaire, ...hull, ...cas,
 };
 
 /** Explication en langage courant d'un élément, ou null s'il n'y en a pas. */

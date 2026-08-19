@@ -21,10 +21,11 @@ capital) est volontairement exclu.
 | **Risques** | VaR, Expected Shortfall, stress testing, crédit, contrepartie, opérationnel, RCSA, KRI, liquidité |
 | **Réglementaire** | Bâle III/IV, FRTB, MiFID II, EMIR, UCITS/AIFM, SFDR, PRIIPs, MAR, CSDR, DORA |
 | **Dérivés — approfondissement** | Arbitrage et réplication, arbres binomiaux, évaluation risque-neutre, grecques, stratégies optionnelles |
+| **Cas réels** | Barings, Metallgesellschaft, LTCM, Orange County, Amaranth, Société Générale, subprimes, London Whale, Archegos, Knight Capital |
 
-**Contenu embarqué dès le premier lancement** : 233 flashcards · 174 questions de quiz ·
-152 fiches de glossaire · 68 questions d'entretien · 17 leçons de découverte ·
-385 explications en langage courant.
+**Contenu embarqué dès le premier lancement** : 255 flashcards · 188 questions de quiz ·
+162 fiches de glossaire · 76 questions d'entretien · 18 leçons de découverte ·
+417 explications en langage courant.
 
 Le module d'approfondissement suit la progression de J. C. Hull, *Options, Futures and Other
 Derivatives* (11ᵉ éd.), utilisé comme ouvrage de référence. Les explications sont rédigées en propre
@@ -70,9 +71,10 @@ Le vocabulaire de la finance de marché est un mur pour un non-initié. Deux dis
   optionnelles** (spreads, straddle, butterfly, condor, collar, box…) avec points morts et bornes de
   gain, **profils des quatre grecques** selon le spot et la maturité, **distribution des pertes avec
   repères VaR et ES**, **EWMA contre fenêtre glissante** de volatilité, **modèle de Merton**,
-  payoff d'options, relation
-  prix-taux avec tangente de duration, frontière efficiente avec GMV, portefeuille tangent et CML.
-  SVG généré à la volée, sans librairie externe.
+  **smile de volatilité**, **convergence des futures et coût de roulement**, **distribution lognormale
+  des prix**, **flux d'un swap de taux**, payoff d'options, relation prix-taux avec tangente de duration,
+  frontière efficiente avec GMV, portefeuille tangent et CML.
+  Quatorze graphiques au total, SVG généré à la volée, sans librairie externe.
 - **Simulateur d'entretien** — questions ouvertes chronométrées, sans correction automatique,
   avec trame de réponse affichable a posteriori.
 - **Notes & marque-pages** — note libre sur n'importe quelle carte, fiche ou question, et marquage
@@ -184,6 +186,7 @@ js/
     risques.js          Module Risques
     reglementaire.js    Module Réglementaire
     hull.js             Module Dérivés — approfondissement
+    cas.js              Module Cas réels
   views/
     dashboard.js  comprendre.js  flashcards.js  quiz.js  calculateurs.js
     glossaire.js  graphiques.js  entretien.js  marques.js  reglages.js

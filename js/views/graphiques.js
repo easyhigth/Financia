@@ -6,7 +6,7 @@ import { simulate, histVarES, paramVarES, ewma, volGlissante, merton } from '../
 // ------------------------------------------------------------ Moteur de tracé
 const W = 640, H = 366, PAD = { l: 54, r: 18, t: 30, b: 36 };
 
-function plot({ series, xLabel, yLabel, xTicks = 6, yTicks = 5, xFmt = (v) => num(v, 0), yFmt = (v) => num(v, 2), zeroLine = false }) {
+function plot({ series, xLabel, yLabel, xTicks = 6, yTicks = 5, xFmt = (v) => num(v, 0), yFmt = (v) => num(v, 2), zeroLine = false, vlines = [] }) {
   const pts = series.flatMap((s) => s.points);
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   let x0 = Math.min(...xs), x1 = Math.max(...xs);
@@ -43,6 +43,22 @@ function plot({ series, xLabel, yLabel, xTicks = 6, yTicks = 5, xFmt = (v) => nu
     `<circle cx="${X(m[0]).toFixed(2)}" cy="${Y(m[1]).toFixed(2)}" r="4" fill="${s.color || '#5b9bd5'}"/>`
   )).join('');
 
+  // Repères verticaux annotés (médiane, moyenne, point mort…) : un trait plus
+  // une étiquette posée sur un fond, pour rester lisible par-dessus les courbes.
+  const reperes = vlines.map((v, i) => {
+    const x = X(v.x);
+    const c = v.color || '#d2a14a';
+    const aDroite = x < W * 0.7;
+    const lw = String(v.label).length * 6.1 + 10;
+    const yl = PAD.t + 8 + i * 19;
+    return `
+      <line x1="${x.toFixed(1)}" y1="${PAD.t}" x2="${x.toFixed(1)}" y2="${H - PAD.b}"
+            stroke="${c}" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <rect x="${(aDroite ? x + 4 : x - lw - 4).toFixed(1)}" y="${yl - 11}" width="${lw.toFixed(1)}" height="16" rx="4"
+            fill="#0d1a29" stroke="${c}" stroke-width="1"/>
+      <text x="${(aDroite ? x + 9 : x - lw + 1).toFixed(1)}" y="${yl + 1}" fill="${c}" font-size="11">${esc(v.label)}</text>`;
+  }).join('');
+
   const legend = series.map((s, i) => {
     const c = s.color || ['#5b9bd5', '#d2a14a', '#4fae7d'][i % 3];
     return `<span><i style="background:${c}"></i>${esc(s.name)}</span>`;
@@ -54,7 +70,7 @@ function plot({ series, xLabel, yLabel, xTicks = 6, yTicks = 5, xFmt = (v) => nu
         ${grid.join('')}
         <line class="axis" x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${H - PAD.b}"/>
         <line class="axis" x1="${PAD.l}" y1="${H - PAD.b}" x2="${W - PAD.r}" y2="${H - PAD.b}"/>
-        ${zero}${paths}${dots}
+        ${zero}${paths}${reperes}${dots}
         <text x="${W - PAD.r}" y="${H - 4}" text-anchor="end">${esc(xLabel)}</text>
         <text x="6" y="14">${esc(yLabel)}</text>
       </svg>
@@ -379,9 +395,10 @@ rentable au taux sans risque — et c'est ce qui permet d'ignorer complètement 
       return {
         svg: plot({
           series: [
-            { name: `P&L net — ${nom}`, points: pnl, markers: morts.map((m) => [m, 0]) },
+            { name: `P&L net — ${nom}`, points: pnl },
             { name: 'Payoff brut (hors prime)', points: brut, dashed: true },
           ],
+          vlines: morts.slice(0, 2).map((m) => ({ x: m, label: `point mort ${num(m, 1)}` })),
           xLabel: "prix du sous-jacent à l'échéance", yLabel: 'P&L',
           xFmt: (x) => num(x, 0), yFmt: (y) => num(y, 1), zeroLine: true,
         }),
@@ -659,9 +676,10 @@ d'intérêts entre actionnaires et créanciers, et l'un des fondements de la ré
       return {
         svg: plot({
           series: [
-            { name: 'Payoff net de la prime', points: net, markers: [[be, 0]] },
+            { name: 'Payoff net de la prime', points: net },
             { name: 'Valeur intrinsèque (hors prime)', points: brut, dashed: true },
           ],
+          vlines: [{ x: be, label: `point mort ${num(be, 2)}` }],
           xLabel: 'prix du sous-jacent à l’échéance', yLabel: 'P&L',
           xFmt: (x) => num(x, 0), yFmt: (y) => num(y, 1), zeroLine: true,
         }),
@@ -671,6 +689,247 @@ Gain maximal : ${maxGain} · Perte maximale : ${maxPerte}.
 ${long
   ? 'La perte de l’acheteur est plafonnée à la prime : c’est le prix de la convexité (gamma long, theta négatif).'
   : 'Le vendeur encaisse la prime mais porte le risque de queue — un call nu vendu a une perte théoriquement illimitée.'}`,
+      };
+    },
+  },
+
+
+  smile: {
+    title: 'Smile et surface de volatilité',
+    sub: "Pourquoi se protéger d'une chute coûte plus cher que parier sur une hausse",
+    ref: 'Hull ch. 20',
+    fields: [
+      { name: 'S', label: 'Spot S', value: 100 },
+      { name: 'atm', label: 'Volatilité à la monnaie (%)', value: 20 },
+      { name: 'pente', label: 'Pente du skew (points de vol pour 10 % de strike)', value: 4 },
+      { name: 'courbure', label: 'Courbure du smile', value: 25 },
+      { name: 'marche', label: 'Marché : 1 = actions, 0 = change', value: 1 },
+    ],
+    presets: [
+      { label: 'Actions (calme)', v: { marche: 1, pente: 4, courbure: 25, atm: 18 } },
+      { label: 'Actions (stress)', v: { marche: 1, pente: 9, courbure: 45, atm: 34 } },
+      { label: 'Change', v: { marche: 0, pente: 0.6, courbure: 40, atm: 10 } },
+      { label: 'Sans smile', v: { pente: 0, courbure: 0 } },
+    ],
+    render(v) {
+      const S = v.S;
+      const actions = v.marche >= 0.5;
+      const ks = range(S * 0.7, S * 1.3, 90);
+      // vol implicite = niveau ATM − pente × moneyness + courbure × moneyness²
+      const vol = (K, mult) => {
+        const m = K / S - 1;
+        return Math.max(1, v.atm * mult - (v.pente * mult) * (m * 10) + v.courbure * mult * m * m);
+      };
+      const series = [[1, '3 mois'], [0.82, '1 an'], [0.72, '2 ans']].map(([mult, lbl]) => ({
+        name: lbl,
+        points: ks.map((K) => [K, vol(K, mult)]),
+      }));
+      const put90 = vol(S * 0.9, 1), call110 = vol(S * 1.1, 1), atmv = vol(S, 1);
+      return {
+        svg: plot({
+          series,
+          xLabel: "prix d'exercice", yLabel: 'volatilité implicite (%)',
+          xFmt: (x) => num(x, 0), yFmt: (y) => num(y, 1),
+        }),
+        notes: `Volatilité implicite à 3 mois : ${num(put90, 1)} % pour un strike à 90, ${num(atmv, 1)} % à la monnaie, ${num(call110, 1)} % à 110.
+Skew (90 % moins 110 %) : ${num(put90 - call110, 1)} points de volatilité.
+
+${actions
+  ? `Sur les actions, la courbe descend : les options qui protègent d'une chute coûtent nettement plus cher.
+Trois raisons se cumulent — les krachs sont brutaux alors que les hausses sont lentes ; les institutionnels
+achètent structurellement de la protection ; et une baisse du cours augmente le poids de la dette, donc la
+volatilité future. Touchez « Actions (stress) » : en période de tension, tout le niveau monte ET la pente
+s'accentue. Le skew est un indicateur de peur, pas seulement un paramètre de pricing.`
+  : `Sur le change, la courbe est plus symétrique : un euro qui monte contre le dollar, c'est un dollar qui
+baisse contre l'euro — il n'y a pas de sens « catastrophe » privilégié. On obtient un vrai sourire plutôt
+qu'un rictus.`}
+
+Ce que cela signifie vraiment : si Black-Scholes était exact, cette courbe serait horizontale — une seule
+volatilité pour tous les strikes. Sa forme mesure donc l'écart entre le modèle et la réalité. Le marché
+utilise la formule tout en corrigeant ses hypothèses par le prix. Touchez « Sans smile » pour voir à quoi
+ressemblerait un monde conforme au modèle.
+
+Les courbes plus plates correspondent aux maturités longues : le smile s'aplatit avec le temps.`,
+      };
+    },
+  },
+
+  convergence: {
+    title: 'Futures : convergence, contango et roulement',
+    sub: "Pourquoi un placement indiciel sur matières premières perd à chaque échéance",
+    ref: 'Hull ch. 5',
+    fields: [
+      { name: 'S', label: 'Prix au comptant', value: 100 },
+      { name: 'r', label: 'Coût de portage net (% par an)', value: 6 },
+      { name: 'mois', label: 'Horizon affiché (mois)', value: 12 },
+      { name: 'echeance', label: 'Durée de chaque contrat (mois)', value: 3 },
+    ],
+    presets: [
+      { label: 'Contango', v: { r: 6 } },
+      { label: 'Contango marqué', v: { r: 14 } },
+      { label: 'Backwardation', v: { r: -8 } },
+      { label: 'Marché plat', v: { r: 0 } },
+    ],
+    render(v) {
+      const S = v.S, r = v.r / 100;
+      const mois = Math.max(3, Math.min(Math.round(v.mois), 36));
+      const ech = Math.max(1, Math.min(Math.round(v.echeance), 12));
+      const ts = range(0, mois, mois * 4);
+      const spot = ts.map((t) => [t, S]);
+      // chaque contrat converge vers le spot à son échéance
+      const contrats = [];
+      for (let debut = 0; debut < mois; debut += ech) {
+        const fin = Math.min(debut + ech, mois);
+        const pts = [];
+        for (let t = debut; t <= fin; t += 0.25) {
+          pts.push([t, S * Math.exp(r * ((debut + ech) - t) / 12)]);
+        }
+        contrats.push(pts);
+      }
+      const serieContrats = contrats.flatMap((pts, i) => (i === 0
+        ? [{ name: 'Prix du contrat future', points: pts }]
+        : [{ name: '', points: pts, color: '#5b9bd5' }]));
+      const nRoul = Math.floor(mois / ech);
+      const coutUnRoul = S * (Math.exp(r * ech / 12) - 1);
+      const coutTotal = coutUnRoul * nRoul;
+      return {
+        svg: plot({
+          series: [...serieContrats, { name: 'Prix au comptant', points: spot, dashed: true, color: '#d2a14a' }],
+          xLabel: 'mois', yLabel: 'prix',
+          xFmt: (x) => num(x, 0), yFmt: (y) => num(y, 1),
+        }),
+        notes: `${r > 0.001 ? 'CONTANGO' : r < -0.001 ? 'BACKWARDATION' : 'MARCHÉ PLAT'} — le contrat à terme cote ${r > 0.001 ? 'au-dessus' : r < -0.001 ? 'en dessous' : 'au niveau'} du comptant.
+
+Chaque segment est un contrat : il démarre ${r > 0 ? 'plus cher que' : r < 0 ? 'moins cher que' : 'au niveau du'} le comptant et converge vers lui à son échéance.
+C'est mécanique : à la dernière seconde, un contrat de livraison immédiate et le comptant sont la même chose.
+
+Pour rester exposé en permanence, il faut ${nRoul} roulement(s) sur ${mois} mois : on vend le contrat qui expire
+et on rachète le suivant, plus cher${r > 0 ? '' : ' — ou moins cher, ici, ce qui joue en votre faveur'}.
+Coût par roulement : ${num(coutUnRoul, 2)} · sur la période : ${num(coutTotal, 2)}, soit ${num(coutTotal / S * 100, 1)} % du capital.
+
+${r > 0.001
+  ? `Voilà pourquoi un placement indiciel sur matières premières peut perdre de l'argent alors que le prix
+du pétrole n'a pas bougé : chaque échéance grignote la performance. C'est le piège le plus courant des
+produits indiciels sur ces marchés, et il est invisible pour qui regarde seulement le prix au comptant.`
+  : `En backwardation, le roulement rapporte au lieu de coûter : on vend cher le contrat proche et on rachète
+moins cher le suivant. Cette situation traduit une pénurie physique — on paie pour disposer de la
+marchandise tout de suite.`}`,
+      };
+    },
+  },
+
+  lognormale: {
+    title: 'Rendements normaux, prix lognormaux',
+    sub: "Pourquoi la distribution des prix n'est pas symétrique",
+    ref: 'Hull ch. 15',
+    fields: [
+      { name: 'S', label: 'Prix actuel', value: 100 },
+      { name: 'sigma', label: 'Volatilité annuelle (%)', value: 30 },
+      { name: 'mu', label: 'Rendement espéré (%)', value: 8 },
+      { name: 'T', label: 'Horizon (années)', value: 2 },
+    ],
+    presets: [
+      { label: '1 an', v: { T: 1 } },
+      { label: '2 ans', v: { T: 2 } },
+      { label: '5 ans', v: { T: 5 } },
+      { label: 'Vol 60 %', v: { sigma: 60 } },
+    ],
+    render(v) {
+      const S = v.S, sig = Math.max(v.sigma / 100, 1e-4), mu = v.mu / 100, T = Math.max(v.T, 0.05);
+      const sq = sig * Math.sqrt(T);
+      const m = Math.log(S) + (mu - 0.5 * sig * sig) * T;     // moyenne du log
+      const xs = range(Math.max(S * 0.05, 1), S * Math.exp(mu * T + 3 * sq), 200);
+      const densite = xs.map((x) => [x,
+        (1 / (x * sq * Math.sqrt(2 * Math.PI))) * Math.exp(-Math.pow(Math.log(x) - m, 2) / (2 * sq * sq)) * 1000]);
+      const mediane = Math.exp(m);
+      const moyenne = S * Math.exp(mu * T);
+      const mode = Math.exp(m - sq * sq);
+      return {
+        svg: plot({
+          series: [
+            { name: 'Densité des prix futurs', points: densite },
+          ],
+          vlines: [
+            { x: mode, label: `plus probable ${num(mode, 0)}`, color: '#7089a3' },
+            { x: mediane, label: `médiane ${num(mediane, 0)}`, color: '#5b9bd5' },
+            { x: moyenne, label: `moyenne ${num(moyenne, 0)}`, color: '#d2a14a' },
+          ],
+          xLabel: `prix dans ${num(T, 1)} an(s)`, yLabel: 'densité',
+          xFmt: (x) => num(x, 0), yFmt: () => '',
+        }),
+        notes: `Prix le plus probable : ${num(mode, 1)} · médiane : ${num(mediane, 1)} · moyenne : ${num(moyenne, 1)}.
+Les trois diffèrent, et c'est tout le sujet.
+
+Pourquoi cette asymétrie ? Un prix ne peut pas descendre sous zéro, mais rien ne le borne à la hausse.
+La perte maximale est de −100 %, le gain possible est illimité. La distribution est donc écrasée à gauche
+et étirée à droite : c'est la loi lognormale.
+
+Formulé autrement : ce sont les RENDEMENTS qui sont supposés symétriques, pas les PRIX. Une hausse de
+50 % suivie d'une baisse de 50 % ne ramène pas au point de départ — elle laisse à 75. C'est exactement
+cette asymétrie que produit le graphique.
+
+Conséquence pratique : la moyenne (${num(moyenne, 1)}) dépasse la médiane (${num(mediane, 1)}). Plus d'un scénario
+sur deux finit SOUS la moyenne, tirée vers le haut par quelques trajectoires très favorables.
+Allongez l'horizon ou montez la volatilité : l'écart se creuse fortement.`,
+      };
+    },
+  },
+
+  swap: {
+    title: "Flux d'un swap de taux",
+    sub: 'Ce qui s\'échange réellement, période par période',
+    ref: 'Hull ch. 7',
+    fields: [
+      { name: 'notionnel', label: 'Notionnel (M€)', value: 100 },
+      { name: 'fixe', label: 'Taux fixe du swap (%)', value: 3 },
+      { name: 'debut', label: 'Taux variable de départ (%)', value: 2 },
+      { name: 'fin', label: 'Taux variable final (%)', value: 4.5 },
+      { name: 'annees', label: 'Durée (années)', value: 5 },
+    ],
+    presets: [
+      { label: 'Taux qui montent', v: { debut: 2, fin: 4.5 } },
+      { label: 'Taux qui baissent', v: { debut: 4.5, fin: 1.5 } },
+      { label: 'Taux stables', v: { debut: 3, fin: 3 } },
+      { label: 'Forte hausse', v: { debut: 1, fin: 6 } },
+    ],
+    render(v) {
+      const n = Math.max(2, Math.min(Math.round(v.annees), 15));
+      const N = v.notionnel;
+      const periodes = Array.from({ length: n }, (_, i) => i + 1);
+      const variable = periodes.map((t) => v.debut + (v.fin - v.debut) * ((t - 1) / Math.max(n - 1, 1)));
+      const fluxFixe = periodes.map((t) => [t, -N * v.fixe / 100]);
+      const fluxVar = periodes.map((t, i) => [t, N * variable[i] / 100]);
+      const net = periodes.map((t, i) => [t, N * (variable[i] - v.fixe) / 100]);
+      const cumul = net.reduce((a, p) => a + p[1], 0);
+      return {
+        svg: plot({
+          series: [
+            { name: 'Reçu (jambe variable)', points: fluxVar },
+            { name: 'Payé (jambe fixe)', points: fluxFixe },
+            { name: 'Flux net', points: net, color: '#4fae7d' },
+          ],
+          xLabel: 'année', yLabel: 'flux (M€)',
+          xFmt: (x) => num(x, 0), yFmt: (y) => num(y, 2), zeroLine: true,
+        }),
+        notes: `Position : payeur du taux fixe ${num(v.fixe, 2)} %, receveur du variable, sur un notionnel de ${num(N, 0)} M€ pendant ${n} ans.
+Le taux variable évolue de ${num(v.debut, 2)} % à ${num(v.fin, 2)} %.
+Résultat net cumulé : ${cumul >= 0 ? '+' : ''}${num(cumul, 2)} M€.
+
+Point à retenir absolument : le notionnel de ${num(N, 0)} M€ n'est JAMAIS échangé. Il ne sert qu'à calculer
+les intérêts. C'est pourquoi un swap est bien moins risqué que son notionnel ne le suggère — et pourquoi
+comparer des encours de dérivés en notionnel n'a aucun sens.
+
+Seul le solde circule réellement : la ligne verte. Les deux parties ne s'envoient pas deux virements,
+elles règlent la différence.
+
+${v.fin > v.debut
+  ? `Ici les taux montent, donc le payeur de fixe gagne : il paie un taux figé bas et reçoit un variable
+qui grimpe. C'est exactement la position d'un gérant obligataire qui veut réduire sa sensibilité aux taux
+sans vendre ses titres.`
+  : v.fin < v.debut
+  ? `Ici les taux baissent, donc le payeur de fixe perd : il reste engagé sur un taux devenu cher. Rappel
+utile — un swap n'est pas une protection gratuite, c'est un pari symétrique.`
+  : `Taux stables : le swap ne rapporte ni ne coûte, hormis l'écart initial entre le fixe et le variable.`}`,
       };
     },
   },

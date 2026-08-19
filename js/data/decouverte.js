@@ -332,4 +332,26 @@ export default [
       ['Procyclicité', "Quand la mesure du risque déclenche les ventes qui aggravent le risque."],
     ],
   },
+
+  {
+    id: 'dec-18',
+    title: 'Les grandes catastrophes',
+    sub: "Ce qui a vraiment fait tomber les banques — et ce n'est jamais ce qu'on croit",
+    minutes: 6,
+    sections: [
+      { h: "Une intuition fausse", p: "On imagine des équations d'une complexité inouïe, des produits que personne ne comprend, une finance devenue folle. La réalité est bien plus banale : presque toutes les grandes pertes viennent de quatre choses simples — trop emprunté, tout mis au même endroit, plus d'argent en caisse au bon moment, et des contrôles qu'on pouvait contourner." },
+      { h: "Barings, 1995 — le joueur et l'arbitre", p: "Un employé pariait sur la bourse japonaise depuis Singapour et cachait ses pertes dans un tiroir comptable prévu pour les erreurs de saisie. Le vrai problème n'était pas qu'il joue, mais qu'il vérifiait lui-même ses propres comptes. Un tremblement de terre au Japon a fait chuter la bourse et emporté une banque vieille de deux siècles. Depuis, une règle absolue : celui qui prend le risque n'est jamais celui qui le contrôle." },
+      { h: "LTCM, 1998 — les prix Nobel et le levier", p: "Un fonds dirigé par les plus grands noms du métier, dont deux prix Nobel. Leur stratégie était fine et leurs modèles excellents. Mais ils empruntaient vingt-cinq fois leur capital, et leurs placements apparemment variés cachaient un pari unique. Quand la Russie a fait défaut, tout a perdu ensemble. Avoir raison ne suffit pas si l'on fait faillite avant que le marché ne vous donne raison." },
+      { h: "Metallgesellschaft, 1993 — la protection qui coule", p: "Une entreprise s'était correctement protégée contre les variations du pétrole. Sur le papier, tout tenait. Mais elle devait payer des sommes considérables immédiatement, alors que ses gains n'arrivaient que dix ans plus tard. Elle n'a pas eu de quoi tenir. Trente ans après, les fonds de retraite britanniques ont reproduit exactement la même erreur." },
+      { h: "2008 — la sécurité qui reposait sur une hypothèse", p: "On regroupait des prêts immobiliers en paquets découpés en tranches, dont les meilleures étaient réputées très sûres. Cette sûreté supposait que les propriétaires ne feraient pas faillite tous en même temps — vrai tant que les prix montaient. Quand ils ont baissé partout à la fois, la protection s'est évaporée. Personne ne savait plus qui portait le risque, et c'est cette ignorance qui a paralysé le système." },
+      { h: "Ce que ça change pour ton métier", p: "Un gestionnaire de risques n'est pas là pour calculer de jolis chiffres. Il est là pour poser les questions gênantes quand tout va bien : combien avons-nous vraiment emprunté ? Que se passe-t-il si nous devons tout vendre en une semaine ? Aurons-nous de quoi payer les appels de marge ? Qui peut contourner nos contrôles ? Ces questions dérangent d'autant plus que l'activité rapporte — et c'est précisément pour cela que le contrôle doit être indépendant." },
+    ],
+    retenir: "Ce ne sont pas les mathématiques qui font tomber les institutions : c'est le levier, la concentration, la trésorerie et les contrôles contournables. Le rôle du risk manager est de poser les questions gênantes tant que tout va encore bien.",
+    mots: [
+      ['Levier', "Emprunter pour investir plus que ce qu'on possède. Amplifie les gains et les pertes."],
+      ['Concentration', "Trop d'argent sur un seul pari, un seul émetteur, un seul marché."],
+      ['Appel de marge', "L'argent qu'il faut verser immédiatement quand une position perd."],
+      ['Séparation des fonctions', "Celui qui prend le risque ne peut pas être celui qui le contrôle."],
+    ],
+  },
 ];
